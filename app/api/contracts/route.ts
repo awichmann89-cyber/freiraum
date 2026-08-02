@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { eq } from "drizzle-orm";
-import { put } from "@vercel/blob";
 import { db } from "@/lib/db";
 import {
   bookings,
@@ -14,7 +13,8 @@ import {
 } from "@/lib/db/schema";
 import { requireAdmin, isResponse } from "@/lib/api-auth";
 import { renderContractPdf } from "@/lib/pdf/contract-template";
-import { generateSigningToken } from "@/lib/contract-token";
+import { generateSigningToken, generatePlainToken } from "@/lib/contract-token";
+import { putPrivateBlob } from "@/lib/blob-storage";
 import { formatDateTimeRange, formatDate } from "@/lib/format";
 import { describeStoredRRule } from "@/lib/recurrence-label";
 import { sendContractSigningLink } from "@/lib/email/contract";
@@ -144,6 +144,7 @@ export async function POST(request: NextRequest) {
   }
 
   const { token, hash } = generateSigningToken();
+  const pdfAccessToken = generatePlainToken();
   const expiresAt = new Date(Date.now() + SIGNING_LINK_EXPIRY_DAYS * 24 * 60 * 60 * 1000);
 
   const [contract] = await db
@@ -153,6 +154,7 @@ export async function POST(request: NextRequest) {
       seriesId: parsed.data.seriesId ?? null,
       status: "sent",
       priceNote: parsed.data.priceNote || null,
+      pdfAccessToken,
       signingTokenHash: hash,
       signingTokenExpiresAt: expiresAt,
       sentAt: new Date(),
@@ -173,10 +175,11 @@ export async function POST(request: NextRequest) {
     createdDateLabel: formatDate(new Date()),
   });
 
-  const blob = await put(`contracts/${contract.id}/unsigned.pdf`, pdfBuffer, {
-    access: "public",
-    contentType: "application/pdf",
-  });
+  const blob = await putPrivateBlob(
+    `contracts/${contract.id}/unsigned.pdf`,
+    pdfBuffer,
+    "application/pdf"
+  );
 
   await db.update(contracts).set({ unsignedPdfUrl: blob.url }).where(eq(contracts.id, contract.id));
 

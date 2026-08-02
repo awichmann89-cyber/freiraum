@@ -152,6 +152,14 @@ export const contracts = pgTable(
     status: contractStatus("status").notNull().default("draft"),
     unsignedPdfUrl: text("unsigned_pdf_url"),
     signedPdfUrl: text("signed_pdf_url"),
+    /**
+     * Long-lived capability token for viewing/downloading the contract PDF
+     * through the blob-proxy route (the underlying Blob store is private).
+     * Stored as plaintext, unlike signingTokenHash: this only grants read
+     * access to a PDF already being emailed to that same recipient, not an
+     * elevated action, so it doesn't need hash-then-compare semantics.
+     */
+    pdfAccessToken: text("pdf_access_token").notNull().unique(),
     signingTokenHash: text("signing_token_hash").unique(),
     signingTokenExpiresAt: timestamp("signing_token_expires_at", { withTimezone: true }),
     sentAt: timestamp("sent_at", { withTimezone: true }),

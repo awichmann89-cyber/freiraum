@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { eq } from "drizzle-orm";
-import { put } from "@vercel/blob";
 import { db } from "@/lib/db";
 import { bookings, contracts, settings } from "@/lib/db/schema";
 import { validateSigningToken } from "@/lib/contract-signing";
@@ -11,6 +10,8 @@ import { sendContractSignedConfirmation } from "@/lib/email/contract";
 import { logAudit } from "@/lib/audit";
 import { getClientIp } from "@/lib/request-ip";
 import { checkContractSignRateLimit } from "@/lib/rate-limit";
+import { putPrivateBlob } from "@/lib/blob-storage";
+import { APP_BASE_URL } from "@/lib/app-url";
 
 const signSchema = z.object({
   signerName: z.string().trim().min(2, "Bitte Namen angeben.").max(200),
@@ -72,10 +73,7 @@ export async function POST(
     },
   });
 
-  const blob = await put(`contracts/${contract.id}/signed.pdf`, pdfBuffer, {
-    access: "public",
-    contentType: "application/pdf",
-  });
+  const blob = await putPrivateBlob(`contracts/${contract.id}/signed.pdf`, pdfBuffer, "application/pdf");
 
   await db
     .update(contracts)
@@ -108,7 +106,7 @@ export async function POST(
     requesterName: context.renterName,
     roomNames: context.roomNames,
     dateRangeLabel: context.scheduleLabel,
-    pdfUrl: blob.url,
+    pdfUrl: `${APP_BASE_URL}/api/contracts/pdf/${contract.pdfAccessToken}`,
   });
 
   await logAudit({

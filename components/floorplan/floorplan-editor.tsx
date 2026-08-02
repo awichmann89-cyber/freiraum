@@ -122,7 +122,7 @@ export function FloorplanEditor({
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src={floorplan.imageUrl}
+          src={`/api/floorplans/${floorplan.id}/image`}
           alt="Lageplan"
           className="block w-full h-auto pointer-events-none"
           draggable={false}

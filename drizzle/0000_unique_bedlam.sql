@@ -74,6 +74,7 @@ CREATE TABLE "contracts" (
 	"status" "contract_status" DEFAULT 'draft' NOT NULL,
 	"unsigned_pdf_url" text,
 	"signed_pdf_url" text,
+	"pdf_access_token" text NOT NULL,
 	"signing_token_hash" text,
 	"signing_token_expires_at" timestamp with time zone,
 	"sent_at" timestamp with time zone,
@@ -85,6 +86,7 @@ CREATE TABLE "contracts" (
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
 	CONSTRAINT "contracts_booking_id_unique" UNIQUE("booking_id"),
 	CONSTRAINT "contracts_series_id_unique" UNIQUE("series_id"),
+	CONSTRAINT "contracts_pdf_access_token_unique" UNIQUE("pdf_access_token"),
 	CONSTRAINT "contracts_signing_token_hash_unique" UNIQUE("signing_token_hash"),
 	CONSTRAINT "contract_booking_xor_series" CHECK (("contracts"."booking_id" is not null and "contracts"."series_id" is null) or ("contracts"."booking_id" is null and "contracts"."series_id" is not null))
 );

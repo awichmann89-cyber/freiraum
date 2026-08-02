@@ -1,5 +1,5 @@
 {
-  "id": "0dc599c4-46db-4713-bf3d-b006a4aa99df",
+  "id": "2cd03299-fa0d-4543-8fc2-3aa985d81613",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -606,6 +606,12 @@
           "primaryKey": false,
           "notNull": false
         },
+        "pdf_access_token": {
+          "name": "pdf_access_token",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
         "signing_token_hash": {
           "name": "signing_token_hash",
           "type": "text",
@@ -706,6 +712,13 @@
           "nullsNotDistinct": false,
           "columns": [
             "series_id"
+          ]
+        },
+        "contracts_pdf_access_token_unique": {
+          "name": "contracts_pdf_access_token_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "pdf_access_token"
           ]
         },
         "contracts_signing_token_hash_unique": {

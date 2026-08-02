@@ -3,8 +3,7 @@ import { sendEmail, getSenderSettings } from "./send";
 import BookingRequestAdminNotification from "@/emails/booking-request-admin-notification";
 import BookingRequestConfirmation from "@/emails/booking-request-confirmation";
 import BookingStatusUpdate from "@/emails/booking-status-update";
-
-const APP_BASE_URL = process.env.APP_BASE_URL ?? "http://localhost:3000";
+import { APP_BASE_URL } from "@/lib/app-url";
 
 interface NewBookingNotificationParams {
   requesterName: string;

@@ -2,8 +2,7 @@ import "server-only";
 import { sendEmail, getSenderSettings } from "./send";
 import ContractSigningLink from "@/emails/contract-signing-link";
 import ContractSignedConfirmation from "@/emails/contract-signed-confirmation";
-
-const APP_BASE_URL = process.env.APP_BASE_URL ?? "http://localhost:3000";
+import { APP_BASE_URL } from "@/lib/app-url";
 
 interface ContractSigningLinkParams {
   requesterEmail: string;

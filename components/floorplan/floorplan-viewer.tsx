@@ -20,7 +20,11 @@ export function FloorplanViewer({
   return (
     <div className="relative w-full overflow-hidden rounded-md border">
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={floorplan.imageUrl} alt="Lageplan" className="block w-full h-auto" />
+      <img
+        src={`/api/floorplans/${floorplan.id}/image`}
+        alt="Lageplan"
+        className="block w-full h-auto"
+      />
       {hotspots.map((hotspot) => {
         const [a, b] = hotspot.coordinates as Point[];
         const room = rooms.find((r) => r.id === hotspot.roomId);

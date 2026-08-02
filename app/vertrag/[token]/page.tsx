@@ -56,18 +56,16 @@ export default async function VertragSignPage({
               <strong>Konditionen:</strong> {result.contract.priceNote}
             </p>
           ) : null}
-          {result.contract.unsignedPdfUrl ? (
-            <p>
-              <a
-                href={result.contract.unsignedPdfUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="text-primary hover:underline"
-              >
-                Vertrag als PDF ansehen
-              </a>
-            </p>
-          ) : null}
+          <p>
+            <a
+              href={`/api/contracts/pdf/${result.contract.pdfAccessToken}`}
+              target="_blank"
+              rel="noreferrer"
+              className="text-primary hover:underline"
+            >
+              Vertrag als PDF ansehen
+            </a>
+          </p>
         </CardContent>
       </Card>
 

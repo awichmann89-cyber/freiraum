@@ -57,28 +57,18 @@ export default async function AdminVertragDetailPage({
               {contract.signerName}
             </p>
           ) : null}
-          <div className="flex gap-4 pt-2">
-            {contract.unsignedPdfUrl ? (
+          {contract.unsignedPdfUrl || contract.signedPdfUrl ? (
+            <div className="flex gap-4 pt-2">
               <a
-                href={contract.unsignedPdfUrl}
+                href={`/api/contracts/pdf/${contract.pdfAccessToken}`}
                 target="_blank"
                 rel="noreferrer"
                 className="text-primary hover:underline"
               >
-                Unsignierter Vertrag (PDF)
+                {contract.signedPdfUrl ? "Unterschriebener Vertrag (PDF)" : "Vertrag (PDF, unsigniert)"}
               </a>
-            ) : null}
-            {contract.signedPdfUrl ? (
-              <a
-                href={contract.signedPdfUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="text-primary hover:underline"
-              >
-                Unterschriebener Vertrag (PDF)
-              </a>
-            ) : null}
-          </div>
+            </div>
+          ) : null}
         </CardContent>
       </Card>
 

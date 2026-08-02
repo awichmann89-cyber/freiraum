@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { fileTypeFromBuffer } from "file-type";
 import sharp from "sharp";
-import { put } from "@vercel/blob";
 import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { floorplans } from "@/lib/db/schema";
 import { requireAdmin, isResponse } from "@/lib/api-auth";
+import { putPrivateBlob } from "@/lib/blob-storage";
 
 const ALLOWED_MIME_TYPES = new Set(["image/png", "image/jpeg", "image/webp"]);
 const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024;
@@ -44,10 +44,11 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Bilddatei konnte nicht gelesen werden." }, { status: 400 });
   }
 
-  const blob = await put(`floorplans/${crypto.randomUUID()}.${detectedType.ext}`, buffer, {
-    access: "public",
-    contentType: detectedType.mime,
-  });
+  const blob = await putPrivateBlob(
+    `floorplans/${crypto.randomUUID()}.${detectedType.ext}`,
+    buffer,
+    detectedType.mime
+  );
 
   await db.update(floorplans).set({ isActive: false }).where(eq(floorplans.isActive, true));
 

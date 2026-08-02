@@ -11,7 +11,8 @@ Self-Service, und ein optionaler klickbarer Lageplan.
 - **Neon Postgres** über **Drizzle ORM**
 - **Auth.js v5** (Credentials, JWT-Sessions) für Admin- und Gruppen-Logins
 - **Resend** + **React Email** für den kompletten E-Mail-Versand
-- **Vercel Blob** für Lageplan-Bilder und Vertrags-PDFs
+- **Vercel Blob** (privater Store) für Lageplan-Bilder und Vertrags-PDFs, ausgeliefert über
+  eigene Proxy-Routen (siehe unten)
 - **@react-pdf/renderer** für die Vertrags-PDFs, **react-signature-canvas** für die Unterschrift
 - **rrule** für wiederkehrende Terminserien
 - **FullCalendar** (nur MIT-lizenzierte Plugins) für alle Kalenderansichten
@@ -60,12 +61,33 @@ Siehe `.env.example`. Wichtig für den Produktivbetrieb:
 Die eigentlichen Absender- und Benachrichtigungs-E-Mail-Adressen werden nach dem ersten
 Login unter **Admin → Einstellungen** gepflegt (dort auch der Vertragstext).
 
+### Vercel Blob: privater Store
+
+Der Blob-Store wird als **privat** angelegt (kein direkter öffentlicher URL-Zugriff auf
+hochgeladene Dateien). Die App liest private Blobs serverseitig über `lib/blob-storage.ts`
+und liefert sie über zwei eigene, token-/ID-basierte Proxy-Routen aus – nirgendwo im Code
+wird eine rohe Blob-URL an den Browser weitergegeben:
+
+- `GET /api/floorplans/[id]/image` – bewusst ohne Login, da der Lageplan öffentlich sichtbar
+  sein soll (öffentliche Kalenderseite).
+- `GET /api/contracts/pdf/[token]` – geschützt durch `contracts.pdfAccessToken`, ein
+  langlebiges Capability-Token (im Klartext in der DB, siehe Kommentar im Schema). Wird für
+  den PDF-Link auf der Signaturseite, in der Bestätigungs-E-Mail und im Admin-Bereich
+  verwendet. Getrennt vom kurzlebigen, gehashten `signingTokenHash`, der nur die eigentliche
+  Unterschrift autorisiert und nach Gebrauch ungültig wird.
+
+Falls der Store stattdessen als **öffentlich** angelegt wird, funktioniert die App weiterhin
+unverändert (die Proxy-Routen funktionieren auch mit einem öffentlichen Store, nur ohne
+dessen Performance-Vorteil, da jeder Aufruf über die eigene Function statt direkt über
+Vercels CDN läuft).
+
 ## Deployment auf Vercel
 
 1. Repository zu Vercel importieren.
 2. Neon-Datenbank anlegen (z. B. über die Vercel-Neon-Integration) und `DATABASE_URL` setzen.
 3. Alle Umgebungsvariablen aus der Tabelle oben in den Vercel-Projekteinstellungen setzen.
-4. Vercel Blob Store anlegen und `BLOB_READ_WRITE_TOKEN` setzen.
+4. Vercel Blob Store anlegen (privat oder öffentlich, siehe Hinweis oben) und
+   `BLOB_READ_WRITE_TOKEN` setzen.
 5. Bei Resend die Absenderdomain verifizieren (SPF, DKIM, idealerweise DMARC), **bevor**
    produktiv E-Mails versendet werden – unverifizierte Domains werden gedrosselt oder als
    Spam markiert.

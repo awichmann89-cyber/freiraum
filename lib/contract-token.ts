@@ -10,3 +10,8 @@ export function generateSigningToken(): { token: string; hash: string } {
 export function hashToken(token: string): string {
   return createHash("sha256").update(token).digest("hex");
 }
+
+/** Plain (unhashed) capability token — used for the long-lived PDF access link. */
+export function generatePlainToken(): string {
+  return randomBytes(24).toString("base64url");
+}

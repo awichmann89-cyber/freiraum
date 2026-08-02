@@ -6,22 +6,16 @@ export const authConfig = {
   callbacks: {
     authorized({ auth, request: { nextUrl } }) {
       const { pathname } = nextUrl;
-      const role = auth?.user?.role;
 
-      if (pathname.startsWith("/admin")) {
-        if (!auth) return false;
-        if (role !== "admin") {
-          return Response.redirect(new URL("/nicht-berechtigt", nextUrl));
-        }
-        return true;
-      }
-
-      if (pathname.startsWith("/gruppe")) {
-        if (!auth) return false;
-        if (role !== "group" && role !== "admin") {
-          return Response.redirect(new URL("/nicht-berechtigt", nextUrl));
-        }
-        return true;
+      // This runs in a separate NextAuth() instance (middleware/proxy) that
+      // doesn't have the custom `session` callback from lib/auth.ts, so
+      // auth.user.role is never populated here — only check "is there a
+      // session at all" and redirect to /login if not. The actual
+      // role-specific check (redirecting to /nicht-berechtigt) happens in
+      // app/admin/layout.tsx and app/gruppe/layout.tsx, which use the full
+      // auth() and do have role/mustChangePassword on the session.
+      if (pathname.startsWith("/admin") || pathname.startsWith("/gruppe")) {
+        return Boolean(auth);
       }
 
       return true;

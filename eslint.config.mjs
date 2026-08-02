@@ -5,6 +5,13 @@ import nextTs from "eslint-config-next/typescript";
 const eslintConfig = defineConfig([
   ...nextVitals,
   ...nextTs,
+  {
+    rules: {
+      // Allows `const { passwordHash, ...safe } = user;` to omit a field
+      // without needing to reference the destructured binding itself.
+      "@typescript-eslint/no-unused-vars": ["warn", { ignoreRestSiblings: true }],
+    },
+  },
   // Override default ignores of eslint-config-next.
   globalIgnores([
     // Default ignores of eslint-config-next:

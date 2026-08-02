@@ -34,17 +34,11 @@ interface NormalizedSeriesInput {
 
 export async function POST(request: NextRequest) {
   const session = await auth();
-
-  if (session?.user && session.user.role === "admin") {
-    return NextResponse.json(
-      { error: "Admins können hier keine eigenen Buchungen anlegen." },
-      { status: 403 }
-    );
-  }
-
   const isGroup = session?.user?.role === "group";
 
-  if (!isGroup) {
+  // Only rate-limit truly anonymous submissions — authenticated users (group
+  // or admin) are already identified via their session.
+  if (!session?.user) {
     const ip = getClientIp(request) ?? "unknown";
     const { success } = await checkBookingRateLimit(ip);
     if (!success) {

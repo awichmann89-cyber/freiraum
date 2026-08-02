@@ -15,7 +15,11 @@ export default async function GruppeLayout({ children }: { children: React.React
   if (!session?.user) {
     redirect("/login?callbackUrl=/gruppe");
   }
-  if (session.user.role !== "group" && session.user.role !== "admin") {
+  if (session.user.role !== "group") {
+    // Admins have their own equivalent views (/admin/kalender, /admin/anfragen)
+    // — the group self-service booking form assumes a group session (no
+    // separate contact fields, room booking always tied to createdByUserId),
+    // which doesn't map cleanly onto an admin account.
     redirect("/nicht-berechtigt");
   }
   if (session.user.mustChangePassword) {

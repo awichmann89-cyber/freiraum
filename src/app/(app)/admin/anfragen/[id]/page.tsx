@@ -148,7 +148,6 @@ export default async function AdminAnfrageDetailPage({
                           mondayISO={week.mondayISO}
                           activeDateISO={week.anchorISO}
                           events={week.events}
-                          canBook={false}
                           basePath={`/admin/anfragen/${anfrage.id}`}
                         />
                       </div>

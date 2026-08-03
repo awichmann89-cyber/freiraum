@@ -293,7 +293,6 @@ export default async function VermietungDetailPage({
                   mondayISO={kalender.mondayISO}
                   activeDateISO={kalender.datum}
                   events={kalender.events}
-                  canBook={false}
                   basePath={`/admin/vermietungen/${vermietung.id}`}
                 />
               </div>

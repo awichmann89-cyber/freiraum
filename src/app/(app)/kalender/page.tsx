@@ -1,11 +1,13 @@
 import type { Metadata } from "next";
 import { prisma } from "@/lib/prisma";
+import { requireUser } from "@/lib/auth-helpers";
 import { getWeekEvents } from "@/lib/calendar-data";
 import { startOfWeekISO } from "@/lib/calendar-time";
 import { addDaysISO, todayISO } from "@/lib/occurrences";
 import { formatDate } from "@/lib/tz";
 import { AllRoomsDay } from "@/components/calendar/all-rooms-day";
 import { CalendarNav } from "@/components/calendar/calendar-nav";
+import { bookingModeForUser } from "@/lib/booking-mode";
 
 export const metadata: Metadata = { title: "Kalender" };
 
@@ -15,17 +17,19 @@ export default async function KalenderPage({
   searchParams: Promise<{ datum?: string }>;
 }) {
   const params = await searchParams;
+  const user = await requireUser();
   const heute = todayISO();
   const datum = /^\d{4}-\d{2}-\d{2}$/.test(params.datum ?? "") ? params.datum! : heute;
   const mondayISO = startOfWeekISO(datum);
 
-  const [raeume, events] = await Promise.all([
+  const [raeume, events, booking] = await Promise.all([
     prisma.raum.findMany({
       where: { isActive: true },
       orderBy: [{ etage: { level: "asc" } }, { name: "asc" }],
       select: { id: true, name: true, etage: { select: { name: true } } },
     }),
     getWeekEvents({ mondayISO }),
+    bookingModeForUser(user),
   ]);
 
   return (
@@ -47,7 +51,7 @@ export default async function KalenderPage({
           dateISO={datum}
           rooms={raeume.map((r) => ({ id: r.id, name: r.name, etageName: r.etage.name }))}
           events={events}
-          canBook
+          booking={booking}
           roomHrefBase="/kalender/raum"
         />
       )}

@@ -3,6 +3,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { prisma } from "@/lib/prisma";
+import { requireUser } from "@/lib/auth-helpers";
+import { bookingModeForUser } from "@/lib/booking-mode";
 import { getWeekEvents } from "@/lib/calendar-data";
 import { startOfWeekISO } from "@/lib/calendar-time";
 import { addDaysISO, todayISO } from "@/lib/occurrences";
@@ -22,6 +24,7 @@ export default async function RaumKalenderPage({
 }) {
   const { raumId } = await params;
   const sp = await searchParams;
+  const user = await requireUser();
 
   const raum = await prisma.raum.findUnique({
     where: { id: raumId },
@@ -32,7 +35,10 @@ export default async function RaumKalenderPage({
   const heute = todayISO();
   const datum = /^\d{4}-\d{2}-\d{2}$/.test(sp.datum ?? "") ? sp.datum! : heute;
   const mondayISO = startOfWeekISO(datum);
-  const events = await getWeekEvents({ mondayISO, raumIds: [raumId] });
+  const [events, booking] = await Promise.all([
+    getWeekEvents({ mondayISO, raumIds: [raumId] }),
+    bookingModeForUser(user),
+  ]);
 
   const wocheLabel = `${formatDateShort(new Date(`${mondayISO}T12:00:00`))} – ${formatDateShort(
     new Date(`${addDaysISO(mondayISO, 6)}T12:00:00`)
@@ -66,10 +72,11 @@ export default async function RaumKalenderPage({
 
       <RoomCalendar
         raumId={raumId}
+        raumName={raum.name}
         mondayISO={mondayISO}
         activeDateISO={datum}
         events={events}
-        canBook
+        booking={booking}
         basePath={`/kalender/raum/${raumId}`}
       />
     </div>

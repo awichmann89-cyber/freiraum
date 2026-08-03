@@ -84,8 +84,14 @@ export async function checkPostenAvailability(input: unknown): Promise<Availabil
   return { ok: true, level: worst, summary, details };
 }
 
-/** Sammel-Anfrage absenden: legt Batch + Posten an und informiert die Admins. */
-export async function submitAnfrage(input: unknown): Promise<{ error: string } | never> {
+/**
+ * Sammel-Anfrage absenden: legt Batch + Posten an und informiert die Admins.
+ * Mit `opts.stayOnPage` (Kalender-Dialog) wird statt des Redirects `{ ok }` zurückgegeben.
+ */
+export async function submitAnfrage(
+  input: unknown,
+  opts?: { stayOnPage?: boolean }
+): Promise<{ error: string } | { ok: true } | never> {
   const user = await requireUser();
   if (!user.gruppeId) {
     return { error: "Nur Gruppen-Zugänge können Buchungsanfragen stellen." };
@@ -171,5 +177,6 @@ export async function submitAnfrage(input: unknown): Promise<{ error: string } |
     await sendEmail({ to: admins.map((a) => a.email), ...mail });
   }
 
+  if (opts?.stayOnPage) return { ok: true };
   redirect(`/buchen/anfragen/${anfrage.id}?neu=1`);
 }

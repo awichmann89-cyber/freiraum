@@ -1,12 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Building2, Repeat } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { CalendarEventVM } from "@/lib/calendar-data";
 import { layoutOverlaps } from "@/lib/calendar-layout";
-import { berlinMinutes, berlinDateISO } from "@/lib/calendar-time";
+import { berlinMinutes, berlinDateISO, minToHHMM } from "@/lib/calendar-time";
 import { KALENDER_START_STUNDE, KALENDER_END_STUNDE } from "@/lib/constants";
 
 export type TimeGridColumn = {
@@ -27,7 +27,7 @@ export function TimeGrid({
   startHour = KALENDER_START_STUNDE,
   endHour = KALENDER_END_STUNDE,
   slotMinutes = 30,
-  onSlotClick,
+  onRangeSelect,
   onEventClick,
   minColWidth = 110,
 }: {
@@ -37,7 +37,8 @@ export function TimeGrid({
   startHour?: number;
   endHour?: number;
   slotMinutes?: number;
-  onSlotClick?: (col: TimeGridColumn, startMin: number) => void;
+  /** Klick = Slot mit Standarddauer, Ziehen (Maus/Stift) = frei gewählter Zeitraum. */
+  onRangeSelect?: (col: TimeGridColumn, startMin: number, endMin: number) => void;
   onEventClick?: (ev: CalendarEventVM) => void;
   minColWidth?: number;
 }) {
@@ -45,6 +46,45 @@ export function TimeGrid({
   const windowEndMin = endHour * 60;
   const totalHeight = (windowEndMin - windowStartMin) * PX_PER_MIN;
   const slotCount = Math.floor((windowEndMin - windowStartMin) / slotMinutes);
+
+  // Drag-Select-Zustand: Ref für die Geste, State nur für das Auswahl-Overlay.
+  const dragRef = useRef<{
+    colKey: string;
+    anchorMin: number;
+    pointerType: string;
+    startY: number;
+    moved: boolean;
+    cancelled: boolean;
+  } | null>(null);
+  const suppressClickRef = useRef(false);
+  const [dragSel, setDragSel] = useState<{ colKey: string; startMin: number; endMin: number } | null>(
+    null
+  );
+
+  const clampMin = (m: number) => Math.max(windowStartMin, Math.min(windowEndMin, m));
+  const snapFloor = (m: number) => Math.floor(m / slotMinutes) * slotMinutes;
+  const snapCeil = (m: number) => Math.ceil(m / slotMinutes) * slotMinutes;
+
+  const minuteFromPointer = (e: React.PointerEvent<HTMLDivElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    return clampMin(windowStartMin + (e.clientY - rect.top) / PX_PER_MIN);
+  };
+
+  const rangeFrom = (anchorMin: number, cur: number) => {
+    if (cur >= anchorMin) {
+      return {
+        startMin: anchorMin,
+        endMin: Math.min(windowEndMin, Math.max(snapCeil(cur), anchorMin + slotMinutes)),
+      };
+    }
+    return { startMin: Math.max(windowStartMin, snapFloor(cur)), endMin: anchorMin + slotMinutes };
+  };
+
+  /** Klick/Tap ohne Ziehen: Slot + 1 Stunde Standarddauer. */
+  const tapRange = (min: number) => ({
+    startMin: min,
+    endMin: Math.min(windowEndMin, min + 60),
+  });
 
   // Jetzt-Linie (minütlich aktualisiert)
   const [now, setNow] = useState<{ dateISO: string; min: number } | null>(null);
@@ -122,32 +162,107 @@ export function TimeGrid({
             return (
               <div
                 key={col.key}
-                className="relative flex-1 border-l"
+                className={cn("relative flex-1 border-l", onRangeSelect && "select-none")}
                 style={{
                   height: totalHeight,
                   minWidth: minColWidth,
                   backgroundImage:
                     "repeating-linear-gradient(to bottom, transparent, transparent calc(56px - 1px), var(--border) calc(56px - 1px), var(--border) 56px)",
                 }}
+                onPointerDown={
+                  onRangeSelect
+                    ? (e) => {
+                        if (e.pointerType !== "touch" && e.button !== 0) return;
+                        // Nicht auf bestehenden Terminen starten — die öffnen ihre Details.
+                        if ((e.target as HTMLElement).closest("[data-event]")) return;
+                        const anchor = snapFloor(minuteFromPointer(e));
+                        dragRef.current = {
+                          colKey: col.key,
+                          anchorMin: anchor,
+                          pointerType: e.pointerType,
+                          startY: e.clientY,
+                          moved: false,
+                          cancelled: false,
+                        };
+                        if (e.pointerType !== "touch") {
+                          e.currentTarget.setPointerCapture(e.pointerId);
+                          setDragSel({ colKey: col.key, startMin: anchor, endMin: anchor + slotMinutes });
+                        }
+                      }
+                    : undefined
+                }
+                onPointerMove={
+                  onRangeSelect
+                    ? (e) => {
+                        const d = dragRef.current;
+                        if (!d || d.colKey !== col.key || d.cancelled) return;
+                        if (d.pointerType === "touch") {
+                          // Touch: Bewegung = Scroll-Geste, keine Auswahl.
+                          if (Math.abs(e.clientY - d.startY) > 10) d.cancelled = true;
+                          return;
+                        }
+                        if (!d.moved && Math.abs(e.clientY - d.startY) > 4) d.moved = true;
+                        if (!d.moved) return;
+                        setDragSel({ colKey: col.key, ...rangeFrom(d.anchorMin, minuteFromPointer(e)) });
+                      }
+                    : undefined
+                }
+                onPointerUp={
+                  onRangeSelect
+                    ? (e) => {
+                        const d = dragRef.current;
+                        dragRef.current = null;
+                        setDragSel(null);
+                        if (!d || d.colKey !== col.key || d.cancelled) return;
+                        suppressClickRef.current = true;
+                        setTimeout(() => (suppressClickRef.current = false), 250);
+                        const r = d.moved
+                          ? rangeFrom(d.anchorMin, minuteFromPointer(e))
+                          : tapRange(d.anchorMin);
+                        onRangeSelect(col, r.startMin, r.endMin);
+                      }
+                    : undefined
+                }
+                onPointerCancel={() => {
+                  dragRef.current = null;
+                  setDragSel(null);
+                }}
               >
-                {/* Slot-Tap-Ziele */}
-                {onSlotClick
+                {/* Slot-Ziele (Hover-Feedback + Tastatur/Screenreader) */}
+                {onRangeSelect
                   ? Array.from({ length: slotCount }, (_, i) => {
                       const min = windowStartMin + i * slotMinutes;
-                      const hh = String(Math.floor(min / 60)).padStart(2, "0");
-                      const mm = String(min % 60).padStart(2, "0");
                       return (
                         <button
                           key={i}
                           type="button"
-                          onClick={() => onSlotClick(col, min)}
+                          onClick={() => {
+                            if (suppressClickRef.current) return;
+                            const r = tapRange(min);
+                            onRangeSelect(col, r.startMin, r.endMin);
+                          }}
                           className="absolute inset-x-0 z-0 hover:bg-accent/60"
                           style={{ top: i * slotMinutes * PX_PER_MIN, height: slotMinutes * PX_PER_MIN }}
-                          aria-label={`${col.label}, ${hh}:${mm} Uhr buchen`}
+                          aria-label={`${col.label}, ${minToHHMM(min)} Uhr buchen`}
                         />
                       );
                     })
                   : null}
+
+                {/* Auswahl-Overlay beim Ziehen */}
+                {dragSel && dragSel.colKey === col.key ? (
+                  <div
+                    className="pointer-events-none absolute inset-x-0.5 z-20 rounded-md border-2 border-primary bg-primary/15"
+                    style={{
+                      top: (dragSel.startMin - windowStartMin) * PX_PER_MIN,
+                      height: (dragSel.endMin - dragSel.startMin) * PX_PER_MIN,
+                    }}
+                  >
+                    <span className="absolute left-1 top-0.5 text-[10px] font-medium text-primary">
+                      {minToHHMM(dragSel.startMin)}–{minToHHMM(dragSel.endMin)}
+                    </span>
+                  </div>
+                ) : null}
 
                 {/* Events */}
                 {positioned.map((ev) => {
@@ -161,6 +276,7 @@ export function TimeGrid({
                   return (
                     <div
                       key={ev.id}
+                      data-event=""
                       role={onEventClick && !isBusy ? "button" : undefined}
                       onClick={onEventClick && !isBusy ? () => onEventClick(ev) : undefined}
                       className={cn(

@@ -2,12 +2,12 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { TimeGrid, type TimeGridColumn } from "./time-grid";
 import { BookingDetailsSheet } from "./booking-details-sheet";
+import { BookingDialog, type BookingMode, type BookingSelection } from "./booking-dialog";
 import type { CalendarEventVM } from "@/lib/calendar-data";
-import { minToHHMM, weekDaysISO } from "@/lib/calendar-time";
+import { weekDaysISO } from "@/lib/calendar-time";
 import { useIsDesktop } from "@/hooks/use-media-query";
 import { WEEKDAY_NAMES_SHORT } from "@/lib/tz";
 import { isoWeekday } from "@/lib/occurrences";
@@ -19,22 +19,25 @@ function dayLabel(dateISO: string): string {
 
 export function RoomCalendar({
   raumId,
+  raumName,
   mondayISO,
   activeDateISO,
   events,
-  canBook,
+  booking,
   basePath,
 }: {
   raumId: string;
+  raumName?: string;
   mondayISO: string;
   activeDateISO: string;
   events: CalendarEventVM[];
-  canBook: boolean;
+  /** null/undefined = nur ansehen; sonst Buchen per Klick/Ziehen direkt im Kalender. */
+  booking?: BookingMode | null;
   basePath: string; // z.B. "/kalender/raum/xyz"
 }) {
-  const router = useRouter();
   const isDesktop = useIsDesktop();
   const [selected, setSelected] = useState<CalendarEventVM | null>(null);
+  const [selection, setSelection] = useState<BookingSelection | null>(null);
 
   const days = useMemo(() => weekDaysISO(mondayISO), [mondayISO]);
 
@@ -78,16 +81,24 @@ export function RoomCalendar({
         events={events}
         groupBy="date"
         minColWidth={isDesktop ? 110 : 260}
-        onSlotClick={
-          canBook
-            ? (col, min) =>
-                router.push(`/buchen?raumId=${raumId}&datum=${col.dateISO}&start=${minToHHMM(min)}`)
+        onRangeSelect={
+          booking
+            ? (col, startMin, endMin) =>
+                setSelection({ raumId, dateISO: col.dateISO, startMin, endMin })
             : undefined
         }
         onEventClick={(ev) => setSelected(ev)}
       />
 
       <BookingDetailsSheet event={selected} onClose={() => setSelected(null)} />
+      {booking ? (
+        <BookingDialog
+          selection={selection}
+          onClose={() => setSelection(null)}
+          raeume={[{ id: raumId, name: raumName ?? "Gewählter Raum" }]}
+          booking={booking}
+        />
+      ) : null}
     </div>
   );
 }

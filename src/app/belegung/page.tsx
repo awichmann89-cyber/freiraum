@@ -77,7 +77,6 @@ export default async function BelegungPage({
             dateISO={datum}
             rooms={raeume.map((r) => ({ id: r.id, name: r.name, etageName: r.etage.name }))}
             events={events}
-            canBook={false}
           />
         )}
       </main>

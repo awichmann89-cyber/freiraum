@@ -107,6 +107,29 @@ export const buchungsAnfrageSchema = z.object({
   posten: z.array(anfragePostenSchema).min(1, "Mindestens einen Termin hinzufügen").max(50),
 });
 
+/** Admin-Direktbuchung aus dem Kalender: wird sofort als BESTAETIGT eingetragen. */
+export const adminBuchungSchema = z
+  .object({
+    raumId: z.string().min(1, "Raum wählen"),
+    gruppeId: z.string().min(1, "Gruppe wählen"),
+    titel: z.string().trim().min(1, "Titel angeben").max(120),
+    startDate: dateString,
+    endDate: dateString,
+    startTime: timeString,
+    endTime: timeString,
+    force: z.boolean().optional().default(false),
+  })
+  .refine((d) => d.endDate >= d.startDate, {
+    message: "Enddatum muss am oder nach dem Startdatum liegen",
+    path: ["endDate"],
+  })
+  .refine(
+    (d) => d.endDate > d.startDate || timeToMinutes(d.endTime) > timeToMinutes(d.startTime),
+    { message: "Ende muss nach dem Beginn liegen", path: ["endTime"] }
+  );
+
+export type AdminBuchungInput = z.input<typeof adminBuchungSchema>;
+
 export type EinzelPostenInput = z.infer<typeof einzelPostenSchema>;
 export type WochenPostenInput = z.infer<typeof wochenPostenSchema>;
 export type AnfragePostenInput = z.infer<typeof anfragePostenSchema>;

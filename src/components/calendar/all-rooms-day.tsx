@@ -1,11 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { TimeGrid, type TimeGridColumn } from "./time-grid";
 import { BookingDetailsSheet } from "./booking-details-sheet";
+import { BookingDialog, type BookingMode, type BookingSelection } from "./booking-dialog";
 import type { CalendarEventVM } from "@/lib/calendar-data";
-import { minToHHMM } from "@/lib/calendar-time";
 
 export type RoomColumn = {
   id: string;
@@ -17,17 +16,18 @@ export function AllRoomsDay({
   dateISO,
   rooms,
   events,
-  canBook,
+  booking,
   roomHrefBase,
 }: {
   dateISO: string;
   rooms: RoomColumn[];
   events: CalendarEventVM[];
-  canBook: boolean;
+  /** null/undefined = nur ansehen; sonst Buchen per Klick/Ziehen direkt im Kalender. */
+  booking?: BookingMode | null;
   roomHrefBase?: string; // z.B. "/kalender/raum" -> Spaltenkopf verlinkt
 }) {
-  const router = useRouter();
   const [selected, setSelected] = useState<CalendarEventVM | null>(null);
+  const [selection, setSelection] = useState<BookingSelection | null>(null);
 
   const columns: TimeGridColumn[] = rooms.map((r) => ({
     key: r.id,
@@ -45,15 +45,23 @@ export function AllRoomsDay({
         events={events.filter((e) => e.dateISO === dateISO)}
         groupBy="room"
         minColWidth={140}
-        onSlotClick={
-          canBook
-            ? (col, min) =>
-                router.push(`/buchen?raumId=${col.roomId}&datum=${dateISO}&start=${minToHHMM(min)}`)
+        onRangeSelect={
+          booking
+            ? (col, startMin, endMin) =>
+                setSelection({ raumId: col.roomId!, dateISO, startMin, endMin })
             : undefined
         }
         onEventClick={(ev) => setSelected(ev)}
       />
       <BookingDetailsSheet event={selected} onClose={() => setSelected(null)} />
+      {booking ? (
+        <BookingDialog
+          selection={selection}
+          onClose={() => setSelection(null)}
+          raeume={rooms.map((r) => ({ id: r.id, name: r.name }))}
+          booking={booking}
+        />
+      ) : null}
     </>
   );
 }

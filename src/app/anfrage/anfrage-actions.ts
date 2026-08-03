@@ -21,7 +21,7 @@ export async function submitMietanfrage(
   if (!parsed.success) return { error: zodErrorMessage(parsed.error) };
   const data = parsed.data;
 
-  if (data.date < todayISO()) {
+  if (data.startDate < todayISO()) {
     return { error: "Das Datum liegt in der Vergangenheit." };
   }
 
@@ -35,8 +35,8 @@ export async function submitMietanfrage(
     raumName = raum.name;
   }
 
-  const requestedStart = berlinInstant(data.date, data.startTime);
-  const requestedEnd = berlinInstant(data.date, data.endTime);
+  const requestedStart = berlinInstant(data.startDate, data.startTime);
+  const requestedEnd = berlinInstant(data.endDate, data.endTime);
 
   const vermietung = await prisma.vermietung.create({
     data: {

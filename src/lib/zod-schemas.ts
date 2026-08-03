@@ -67,13 +67,18 @@ const postenBase = {
 export const einzelPostenSchema = z
   .object({
     art: z.literal("EINZEL"),
-    date: dateString,
+    startDate: dateString,
+    endDate: dateString,
     ...postenBase,
   })
-  .refine((d) => timeToMinutes(d.endTime) > timeToMinutes(d.startTime), {
-    message: "Ende muss nach dem Beginn liegen",
-    path: ["endTime"],
-  });
+  .refine((d) => d.endDate >= d.startDate, {
+    message: "Enddatum muss am oder nach dem Startdatum liegen",
+    path: ["endDate"],
+  })
+  .refine(
+    (d) => d.endDate > d.startDate || timeToMinutes(d.endTime) > timeToMinutes(d.startTime),
+    { message: "Ende muss nach dem Beginn liegen", path: ["endTime"] }
+  );
 
 export const wochenPostenSchema = z
   .object({
@@ -186,13 +191,18 @@ export const mietanfrageSchema = z
     purpose: z.string().trim().min(1, "Zweck angeben").max(200),
     message: z.string().trim().max(2000).optional(),
     raumId: z.string().optional(),
-    date: dateString,
+    startDate: dateString,
+    endDate: dateString,
     startTime: timeString,
     endTime: timeString,
   })
-  .refine((d) => timeToMinutes(d.endTime) > timeToMinutes(d.startTime), {
-    message: "Ende muss nach dem Beginn liegen",
-    path: ["endTime"],
-  });
+  .refine((d) => d.endDate >= d.startDate, {
+    message: "Enddatum muss am oder nach dem Startdatum liegen",
+    path: ["endDate"],
+  })
+  .refine(
+    (d) => d.endDate > d.startDate || timeToMinutes(d.endTime) > timeToMinutes(d.startTime),
+    { message: "Ende muss nach dem Beginn liegen", path: ["endTime"] }
+  );
 
 export type MietanfrageInput = z.infer<typeof mietanfrageSchema>;

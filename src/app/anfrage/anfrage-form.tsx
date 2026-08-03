@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -24,6 +24,8 @@ export function AnfrageForm({
     submitMietanfrage,
     undefined
   );
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
 
   return (
     <form action={formAction} className="space-y-4">
@@ -65,17 +67,40 @@ export function AnfrageForm({
         </Select>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-2">
-          <Label htmlFor="mf-date">Datum *</Label>
-          <Input id="mf-date" name="date" type="date" required />
+          <Label htmlFor="mf-start-date">Datum von *</Label>
+          <Input
+            id="mf-start-date"
+            name="startDate"
+            type="date"
+            required
+            value={startDate}
+            onChange={(e) => {
+              const v = e.target.value;
+              setStartDate(v);
+              if (!endDate || endDate < v) setEndDate(v);
+            }}
+          />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="mf-start">Von *</Label>
+          <Label htmlFor="mf-start">Uhrzeit von *</Label>
           <Input id="mf-start" name="startTime" type="time" required />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="mf-end">Bis *</Label>
+          <Label htmlFor="mf-end-date">Datum bis *</Label>
+          <Input
+            id="mf-end-date"
+            name="endDate"
+            type="date"
+            required
+            min={startDate || undefined}
+            value={endDate}
+            onChange={(e) => setEndDate(e.target.value)}
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="mf-end">Uhrzeit bis *</Label>
           <Input id="mf-end" name="endTime" type="time" required />
         </div>
       </div>

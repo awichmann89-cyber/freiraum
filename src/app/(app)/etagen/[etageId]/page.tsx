@@ -95,7 +95,7 @@ export default async function EtageViewerPage({
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h1 className="text-xl font-semibold">Etagen</h1>
+        <h1 className="text-xl font-semibold">Floorplan</h1>
         {user.role === "ADMIN" ? (
           <Button variant="outline" size="sm" asChild>
             <Link href={`/admin/etagen/${etage.id}/plan`}>

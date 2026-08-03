@@ -5,9 +5,19 @@ import { prisma } from "@/lib/prisma";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { checkAvailability } from "@/lib/availability";
-import { formatDate, formatRange, formatTime } from "@/lib/tz";
+import { formatDate, formatDateShort, formatRange, formatTime } from "@/lib/tz";
 import { formatEuro } from "@/lib/contract";
-import { berlinDateISO, berlinMinutes, minToHHMM } from "@/lib/calendar-time";
+import {
+  berlinDateISO,
+  berlinMinutes,
+  minToHHMM,
+  splitIntoBerlinDays,
+  startOfWeekISO,
+} from "@/lib/calendar-time";
+import { addDaysISO, todayISO } from "@/lib/occurrences";
+import { getWeekEvents, type CalendarEventVM } from "@/lib/calendar-data";
+import { RoomCalendar } from "@/components/calendar/room-calendar";
+import { CalendarNav } from "@/components/calendar/calendar-nav";
 import { VermietungStatusBadge } from "../vermietung-status-badge";
 import { VertragForm, type VertragFormDefaults } from "./vertrag-form";
 import { DeclineButton, StornoButton } from "./status-actions";
@@ -17,10 +27,13 @@ export const metadata: Metadata = { title: "Vermietung" };
 
 export default async function VermietungDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ datum?: string }>;
 }) {
   const { id } = await params;
+  const sp = await searchParams;
   const vermietung = await prisma.vermietung.findUnique({
     where: { id },
     include: { raum: { select: { id: true, name: true } } },
@@ -39,6 +52,41 @@ export default async function VermietungDetailPage({
   const konflikte = verfuegbarkeit?.[0]?.konflikte ?? [];
   const vermietungsKonflikte = konflikte.filter((k) => k.art === "VERMIETUNG");
   const gruppenKonflikte = konflikte.filter((k) => k.art === "GRUPPE");
+
+  // Wochenkalender des Raums, damit Überschneidungen im Kontext sichtbar sind.
+  // Der Anfrage-Zeitraum selbst wird als eigener (pending) Block eingeblendet.
+  let kalender: {
+    raumId: string;
+    mondayISO: string;
+    datum: string;
+    wocheLabel: string;
+    events: CalendarEventVM[];
+  } | null = null;
+  if (verfuegbarkeit && vermietung.raum) {
+    const datum = /^\d{4}-\d{2}-\d{2}$/.test(sp.datum ?? "") ? sp.datum! : berlinDateISO(start);
+    const mondayISO = startOfWeekISO(datum);
+    const sundayISO = addDaysISO(mondayISO, 6);
+    const events = await getWeekEvents({ mondayISO, raumIds: [vermietung.raum.id] });
+    for (const seg of splitIntoBerlinDays(start, end)) {
+      if (seg.dateISO < mondayISO || seg.dateISO > sundayISO) continue;
+      events.push({
+        id: `anfrage-${vermietung.id}-${seg.dateISO}`,
+        roomId: vermietung.raum.id,
+        roomName: vermietung.raum.name,
+        dateISO: seg.dateISO,
+        startMin: seg.startMin,
+        endMin: seg.endMin,
+        title: `Diese Anfrage (${vermietung.nummer})`,
+        subtitle: vermietung.contactName,
+        kind: "external",
+        status: "pending",
+      });
+    }
+    const wocheLabel = `${formatDateShort(new Date(`${mondayISO}T12:00:00`))} – ${formatDateShort(
+      new Date(`${sundayISO}T12:00:00`)
+    )}`;
+    kalender = { raumId: vermietung.raum.id, mondayISO, datum, wocheLabel, events };
+  }
 
   // Formular-Daten (Räume, Vorlagen, Defaults)
   let formData: {
@@ -228,6 +276,28 @@ export default async function VermietungDetailPage({
                 ) : null}
               </>
             )}
+
+            {kalender ? (
+              <div className="space-y-2 pt-2">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <p className="font-medium">Kalender · {vermietung.raum?.name}</p>
+                  <CalendarNav
+                    label={kalender.wocheLabel}
+                    prevHref={`/admin/vermietungen/${vermietung.id}?datum=${addDaysISO(kalender.mondayISO, -7)}`}
+                    nextHref={`/admin/vermietungen/${vermietung.id}?datum=${addDaysISO(kalender.mondayISO, 7)}`}
+                    todayHref={`/admin/vermietungen/${vermietung.id}?datum=${todayISO()}`}
+                  />
+                </div>
+                <RoomCalendar
+                  raumId={kalender.raumId}
+                  mondayISO={kalender.mondayISO}
+                  activeDateISO={kalender.datum}
+                  events={kalender.events}
+                  canBook={false}
+                  basePath={`/admin/vermietungen/${vermietung.id}`}
+                />
+              </div>
+            ) : null}
           </CardContent>
         </Card>
       ) : null}

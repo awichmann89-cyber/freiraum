@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 
-export const metadata: Metadata = { title: "Etagen" };
+export const metadata: Metadata = { title: "Floorplan" };
 
 export default async function EtagenIndexPage() {
   const etagen = await prisma.etage.findMany({
@@ -16,7 +16,7 @@ export default async function EtagenIndexPage() {
 
   return (
     <div className="space-y-2">
-      <h1 className="text-xl font-semibold">Etagen</h1>
+      <h1 className="text-xl font-semibold">Floorplan</h1>
       <p className="text-sm text-muted-foreground">Noch keine Etagen angelegt.</p>
     </div>
   );

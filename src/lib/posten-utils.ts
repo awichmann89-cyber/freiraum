@@ -26,7 +26,9 @@ function isoToDeutsch(iso: string): string {
 /** Intervalle eines Anfrage-Posten (Wizard-Input) — Serien bis zum Horizont expandiert. */
 export function postenIntervals(p: AnfragePostenInput, horizon: string = horizonISO()): Interval[] {
   if (p.art === "EINZEL") {
-    return [{ start: berlinInstant(p.date, p.startTime), end: berlinInstant(p.date, p.endTime) }];
+    return [
+      { start: berlinInstant(p.startDate, p.startTime), end: berlinInstant(p.endDate, p.endTime) },
+    ];
   }
   return expandWeekly(
     {
@@ -67,7 +69,10 @@ export function postenIntervalsFromDb(
 /** Menschlich lesbare Beschreibung eines Posten (Wizard-Input). */
 export function postenBeschreibung(p: AnfragePostenInput): string {
   if (p.art === "EINZEL") {
-    return formatRange(berlinInstant(p.date, p.startTime), berlinInstant(p.date, p.endTime));
+    return formatRange(
+      berlinInstant(p.startDate, p.startTime),
+      berlinInstant(p.endDate, p.endTime)
+    );
   }
   return beschreibeWoechentlich({
     weekday: p.weekday,
@@ -102,7 +107,7 @@ export function postenBeschreibungFromDb(
 export function validatePostenDates(p: AnfragePostenInput, now: Date = new Date()): string | null {
   const heute = todayISO(now);
   const horizon = horizonISO(now);
-  const startDatum = p.art === "EINZEL" ? p.date : p.firstDate;
+  const startDatum = p.art === "EINZEL" ? p.startDate : p.firstDate;
 
   if (startDatum < heute) return "Der Termin liegt in der Vergangenheit.";
   if (startDatum > horizon) {

@@ -33,10 +33,16 @@ type Entry = {
   checking: boolean;
 };
 
+function isoZuDeutsch(iso: string): string {
+  return iso.split("-").reverse().join(".");
+}
+
 function beschreibeInput(p: AnfragePostenInput): string {
   if (p.art === "EINZEL") {
-    const [y, m, d] = p.date.split("-");
-    return `${d}.${m}.${y}, ${p.startTime}–${p.endTime} Uhr`;
+    if (p.startDate === p.endDate) {
+      return `${isoZuDeutsch(p.startDate)}, ${p.startTime}–${p.endTime} Uhr`;
+    }
+    return `${isoZuDeutsch(p.startDate)}, ${p.startTime} Uhr – ${isoZuDeutsch(p.endDate)}, ${p.endTime} Uhr`;
   }
   const bis = p.endDate ? ` bis ${p.endDate.split("-").reverse().join(".")}` : "";
   return `Wöchentlich ${WEEKDAY_NAMES[p.weekday]?.toLowerCase()}s ${p.startTime}–${p.endTime} Uhr, ab ${p.firstDate
@@ -73,7 +79,8 @@ export function BuchenWizard({
   const [art, setArt] = useState<"EINZEL" | "WOECHENTLICH">("EINZEL");
   const [raumId, setRaumId] = useState(prefill?.raumId ?? "");
   const [titel, setTitel] = useState("");
-  const [date, setDate] = useState(prefill?.date ?? "");
+  const [startDate, setStartDate] = useState(prefill?.date ?? "");
+  const [endDateEinzel, setEndDateEinzel] = useState(prefill?.date ?? "");
   const [startTime, setStartTime] = useState(prefill?.start ?? "");
   const [endTime, setEndTime] = useState(prefill?.end ?? "");
   const [weekday, setWeekday] = useState("1");
@@ -85,7 +92,7 @@ export function BuchenWizard({
     setFormError(null);
     const raw =
       art === "EINZEL"
-        ? { art, raumId, titel, date, startTime, endTime }
+        ? { art, raumId, titel, startDate, endDate: endDateEinzel || startDate, startTime, endTime }
         : { art, raumId, titel, weekday, startTime, endTime, firstDate, endDate };
 
     const parsed = anfragePostenSchema.safeParse(raw);
@@ -164,10 +171,32 @@ export function BuchenWizard({
             </div>
 
             {art === "EINZEL" ? (
-              <div className="space-y-2">
-                <Label htmlFor="posten-date">Datum</Label>
-                <Input id="posten-date" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
-              </div>
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="posten-start-date">Datum von</Label>
+                  <Input
+                    id="posten-start-date"
+                    type="date"
+                    value={startDate}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      setStartDate(v);
+                      // Enddatum folgt, solange es nicht bewusst dahinter liegt
+                      if (!endDateEinzel || endDateEinzel < v) setEndDateEinzel(v);
+                    }}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="posten-end-date">Datum bis</Label>
+                  <Input
+                    id="posten-end-date"
+                    type="date"
+                    min={startDate || undefined}
+                    value={endDateEinzel}
+                    onChange={(e) => setEndDateEinzel(e.target.value)}
+                  />
+                </div>
+              </>
             ) : (
               <>
                 <div className="space-y-2">
@@ -207,7 +236,7 @@ export function BuchenWizard({
             )}
 
             <div className="space-y-2">
-              <Label htmlFor="posten-start">Von</Label>
+              <Label htmlFor="posten-start">Uhrzeit von</Label>
               <Input
                 id="posten-start"
                 type="time"
@@ -216,7 +245,7 @@ export function BuchenWizard({
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="posten-ende">Bis</Label>
+              <Label htmlFor="posten-ende">Uhrzeit bis</Label>
               <Input
                 id="posten-ende"
                 type="time"

@@ -10,6 +10,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { formatRange } from "@/lib/tz";
+import { ClickableRow } from "@/components/clickable-row";
 import { VermietungStatusBadge } from "./vermietung-status-badge";
 
 export const metadata: Metadata = { title: "Vermietungen" };
@@ -45,7 +46,7 @@ export default async function VermietungenPage() {
               </TableRow>
             ) : (
               vermietungen.map((v) => (
-                <TableRow key={v.id}>
+                <ClickableRow key={v.id} href={`/admin/vermietungen/${v.id}`}>
                   <TableCell>
                     <Link href={`/admin/vermietungen/${v.id}`} className="font-medium hover:underline">
                       {v.nummer}
@@ -64,7 +65,7 @@ export default async function VermietungenPage() {
                   <TableCell>
                     <VermietungStatusBadge status={v.status} />
                   </TableCell>
-                </TableRow>
+                </ClickableRow>
               ))
             )}
           </TableBody>

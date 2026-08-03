@@ -138,8 +138,8 @@ export async function submitAnfrage(input: unknown): Promise<{ error: string } |
                 raumId: p.raumId,
                 titel: p.titel,
                 art: "EINZEL" as const,
-                startsAt: berlinInstant(p.date, p.startTime),
-                endsAt: berlinInstant(p.date, p.endTime),
+                startsAt: berlinInstant(p.startDate, p.startTime),
+                endsAt: berlinInstant(p.endDate, p.endTime),
               }
             : {
                 raumId: p.raumId,

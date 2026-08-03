@@ -16,7 +16,7 @@ type NavItem = {
 
 const NAV_ITEMS: NavItem[] = [
   { href: "/kalender", label: "Kalender", icon: CalendarDays },
-  { href: "/etagen", label: "Etagen", icon: Map },
+  { href: "/etagen", label: "Floorplan", icon: Map },
   { href: "/buchen", label: "Buchen", icon: CirclePlus },
   { href: "/admin", label: "Admin-Bereich", icon: Settings, adminOnly: true },
 ];

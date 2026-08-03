@@ -81,6 +81,38 @@ describe("expandWeekly", () => {
       "2026-08-17",
     ]);
   });
+
+  it("erzeugt 14-tägigen Rhythmus (intervalWeeks 2)", () => {
+    const result = expandWeekly(
+      { weekday: 1, startTime: "10:00", endTime: "11:00", firstDate: "2026-08-03", intervalWeeks: 2 },
+      "2026-09-14"
+    );
+    expect(result.map((r) => r.start.toISOString().slice(0, 10))).toEqual([
+      "2026-08-03",
+      "2026-08-17",
+      "2026-08-31",
+      "2026-09-14",
+    ]);
+  });
+
+  it("hält die Phase des Rhythmus bei fromISO-Nachmaterialisierung", () => {
+    // 3-Wochen-Serie ab Mo 05.01.2026: 05.01., 26.01., 16.02., ... — Phase muss
+    // auch beim Einstieg mitten im Jahr erhalten bleiben.
+    const voll = expandWeekly(
+      { weekday: 1, startTime: "10:00", endTime: "11:00", firstDate: "2026-01-05", intervalWeeks: 3 },
+      "2026-09-30"
+    );
+    const nachmaterialisiert = expandWeekly(
+      { weekday: 1, startTime: "10:00", endTime: "11:00", firstDate: "2026-01-05", intervalWeeks: 3 },
+      "2026-09-30",
+      "2026-08-01"
+    );
+    const erwartet = voll
+      .map((r) => r.start.toISOString().slice(0, 10))
+      .filter((d) => d >= "2026-08-01");
+    expect(nachmaterialisiert.map((r) => r.start.toISOString().slice(0, 10))).toEqual(erwartet);
+    expect(erwartet.length).toBeGreaterThan(0);
+  });
 });
 
 describe("dbDateToISO", () => {

@@ -44,11 +44,9 @@ function beschreibeInput(p: AnfragePostenInput): string {
     }
     return `${isoZuDeutsch(p.startDate)}, ${p.startTime} Uhr – ${isoZuDeutsch(p.endDate)}, ${p.endTime} Uhr`;
   }
-  const bis = p.endDate ? ` bis ${p.endDate.split("-").reverse().join(".")}` : "";
-  return `Wöchentlich ${WEEKDAY_NAMES[p.weekday]?.toLowerCase()}s ${p.startTime}–${p.endTime} Uhr, ab ${p.firstDate
-    .split("-")
-    .reverse()
-    .join(".")}${bis}`;
+  const bis = p.endDate ? ` bis ${isoZuDeutsch(p.endDate)}` : "";
+  const rhythmus = p.intervalWeeks > 1 ? `Alle ${p.intervalWeeks} Wochen` : "Wöchentlich";
+  return `${rhythmus} ${WEEKDAY_NAMES[p.weekday]?.toLowerCase()}s ${p.startTime}–${p.endTime} Uhr, ab ${isoZuDeutsch(p.firstDate)}${bis}`;
 }
 
 function LevelBadge({ feedback }: { feedback?: AvailabilityFeedback }) {
@@ -86,6 +84,7 @@ export function BuchenWizard({
   const [weekday, setWeekday] = useState("1");
   const [firstDate, setFirstDate] = useState(prefill?.date ?? "");
   const [endDate, setEndDate] = useState("");
+  const [intervalWeeks, setIntervalWeeks] = useState("1");
   const [formError, setFormError] = useState<string | null>(null);
 
   const addEntry = () => {
@@ -93,7 +92,7 @@ export function BuchenWizard({
     const raw =
       art === "EINZEL"
         ? { art, raumId, titel, startDate, endDate: endDateEinzel || startDate, startTime, endTime }
-        : { art, raumId, titel, weekday, startTime, endTime, firstDate, endDate };
+        : { art, raumId, titel, weekday, startTime, endTime, firstDate, endDate, intervalWeeks };
 
     const parsed = anfragePostenSchema.safeParse(raw);
     if (!parsed.success) {
@@ -231,6 +230,22 @@ export function BuchenWizard({
                     value={endDate}
                     onChange={(e) => setEndDate(e.target.value)}
                   />
+                </div>
+                <div className="space-y-2">
+                  <Label>Rhythmus</Label>
+                  <Select value={intervalWeeks} onValueChange={setIntervalWeeks}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="1">Jede Woche</SelectItem>
+                      <SelectItem value="2">Alle 2 Wochen</SelectItem>
+                      <SelectItem value="3">Alle 3 Wochen</SelectItem>
+                      <SelectItem value="4">Alle 4 Wochen</SelectItem>
+                      <SelectItem value="6">Alle 6 Wochen</SelectItem>
+                      <SelectItem value="8">Alle 8 Wochen</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </>
             )}

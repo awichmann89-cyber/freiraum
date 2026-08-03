@@ -86,6 +86,7 @@ export const wochenPostenSchema = z
     weekday: z.coerce.number().int().min(1).max(7),
     firstDate: dateString,
     endDate: dateString.optional().or(z.literal("").transform(() => undefined)),
+    intervalWeeks: z.coerce.number().int().min(1, "Rhythmus wählen").max(12).default(1),
     ...postenBase,
   })
   .refine((d) => timeToMinutes(d.endTime) > timeToMinutes(d.startTime), {
@@ -108,25 +109,49 @@ export const buchungsAnfrageSchema = z.object({
 });
 
 /** Admin-Direktbuchung aus dem Kalender: wird sofort als BESTAETIGT eingetragen. */
-export const adminBuchungSchema = z
-  .object({
-    raumId: z.string().min(1, "Raum wählen"),
-    gruppeId: z.string().min(1, "Gruppe wählen"),
-    titel: z.string().trim().min(1, "Titel angeben").max(120),
-    startDate: dateString,
-    endDate: dateString,
-    startTime: timeString,
-    endTime: timeString,
-    force: z.boolean().optional().default(false),
-  })
-  .refine((d) => d.endDate >= d.startDate, {
-    message: "Enddatum muss am oder nach dem Startdatum liegen",
-    path: ["endDate"],
-  })
-  .refine(
-    (d) => d.endDate > d.startDate || timeToMinutes(d.endTime) > timeToMinutes(d.startTime),
-    { message: "Ende muss nach dem Beginn liegen", path: ["endTime"] }
-  );
+const adminBuchungBase = {
+  raumId: z.string().min(1, "Raum wählen"),
+  gruppeId: z.string().min(1, "Gruppe wählen"),
+  titel: z.string().trim().min(1, "Titel angeben").max(120),
+  startTime: timeString,
+  endTime: timeString,
+  force: z.boolean().optional().default(false),
+};
+
+export const adminBuchungSchema = z.discriminatedUnion("art", [
+  z
+    .object({
+      art: z.literal("EINZEL"),
+      startDate: dateString,
+      endDate: dateString,
+      ...adminBuchungBase,
+    })
+    .refine((d) => d.endDate >= d.startDate, {
+      message: "Enddatum muss am oder nach dem Startdatum liegen",
+      path: ["endDate"],
+    })
+    .refine(
+      (d) => d.endDate > d.startDate || timeToMinutes(d.endTime) > timeToMinutes(d.startTime),
+      { message: "Ende muss nach dem Beginn liegen", path: ["endTime"] }
+    ),
+  z
+    .object({
+      art: z.literal("WOECHENTLICH"),
+      weekday: z.coerce.number().int().min(1).max(7),
+      firstDate: dateString,
+      endDate: dateString.optional().or(z.literal("").transform(() => undefined)),
+      intervalWeeks: z.coerce.number().int().min(1, "Rhythmus wählen").max(12).default(1),
+      ...adminBuchungBase,
+    })
+    .refine((d) => timeToMinutes(d.endTime) > timeToMinutes(d.startTime), {
+      message: "Ende muss nach dem Beginn liegen",
+      path: ["endTime"],
+    })
+    .refine((d) => !d.endDate || d.endDate >= d.firstDate, {
+      message: "Serienende muss nach dem ersten Termin liegen",
+      path: ["endDate"],
+    }),
+]);
 
 export type AdminBuchungInput = z.input<typeof adminBuchungSchema>;
 

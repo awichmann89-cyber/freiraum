@@ -156,6 +156,7 @@ export async function submitAnfrage(
                 endTime: p.endTime,
                 firstDate: new Date(`${p.firstDate}T00:00:00.000Z`),
                 endDate: p.endDate ? new Date(`${p.endDate}T00:00:00.000Z`) : null,
+                intervalWeeks: p.intervalWeeks,
               }
         ),
       },

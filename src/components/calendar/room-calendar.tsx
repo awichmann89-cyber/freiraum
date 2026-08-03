@@ -39,6 +39,12 @@ export function RoomCalendar({
   const [selected, setSelected] = useState<CalendarEventVM | null>(null);
   const [selection, setSelection] = useState<BookingSelection | null>(null);
 
+  const viewer = booking
+    ? booking.mode === "admin"
+      ? { isAdmin: true, gruppeId: null }
+      : { isAdmin: false, gruppeId: booking.gruppeId }
+    : null;
+
   const days = useMemo(() => weekDaysISO(mondayISO), [mondayISO]);
 
   const columns: TimeGridColumn[] = (isDesktop ? days : [activeDateISO]).map((d) => ({
@@ -90,7 +96,7 @@ export function RoomCalendar({
         onEventClick={(ev) => setSelected(ev)}
       />
 
-      <BookingDetailsSheet event={selected} onClose={() => setSelected(null)} />
+      <BookingDetailsSheet event={selected} onClose={() => setSelected(null)} viewer={viewer} />
       {booking ? (
         <BookingDialog
           selection={selection}

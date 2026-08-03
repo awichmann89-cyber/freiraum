@@ -181,11 +181,12 @@ model AnfragePosten {
   endsAt   DateTime?
 
   // WOECHENTLICH: Wandzeit Europe/Berlin (DST-fest)
-  weekday   Int? // ISO 1=Mo .. 7=So
-  startTime String? // "18:00"
-  endTime   String? // "20:00"
-  firstDate DateTime? @db.Date
-  endDate   DateTime? @db.Date // null = offen
+  weekday       Int? // ISO 1=Mo .. 7=So
+  startTime     String? // "18:00"
+  endTime       String? // "20:00"
+  firstDate     DateTime? @db.Date
+  endDate       DateTime? @db.Date // null = offen
+  intervalWeeks Int? // Rhythmus in Wochen (1 = jede Woche)
 
   status       PostenStatus @default(ANGEFRAGT)
   decidedAt    DateTime?
@@ -215,6 +216,7 @@ model BuchungsSerie {
   endTime           String
   firstDate         DateTime     @db.Date
   endDate           DateTime?    @db.Date
+  intervalWeeks     Int          @default(1) // Rhythmus in Wochen (1 = jede Woche)
   materializedUntil DateTime     @db.Date
   status            SerienStatus @default(AKTIV)
   createdAt         DateTime     @default(now())

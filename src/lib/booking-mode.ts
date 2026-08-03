@@ -14,5 +14,5 @@ export async function bookingModeForUser(user: {
     });
     return { mode: "admin", gruppen };
   }
-  return user.gruppeId ? { mode: "gruppe" } : null;
+  return user.gruppeId ? { mode: "gruppe", gruppeId: user.gruppeId } : null;
 }

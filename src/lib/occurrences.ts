@@ -46,28 +46,31 @@ export type WeeklyDef = {
   endTime: string;
   firstDate: string; // "yyyy-mm-dd"
   endDate?: string | null;
+  intervalWeeks?: number; // Rhythmus in Wochen (Default 1 = jede Woche)
 };
 
 /**
  * Expandiert eine wöchentliche Serie zu konkreten UTC-Intervallen.
  * `fromISO`/`untilISO` begrenzen den erzeugten Bereich (beide inklusiv, Datumsebene).
+ * Der Rhythmus bleibt dabei phasengenau am ersten Termin verankert.
  */
 export function expandWeekly(def: WeeklyDef, untilISO: string, fromISO?: string): Interval[] {
   const result: Interval[] = [];
+  const stepDays = Math.max(1, Math.trunc(def.intervalWeeks ?? 1)) * 7;
 
   let cursor = def.firstDate;
   const offset = (def.weekday - isoWeekday(cursor) + 7) % 7;
   cursor = addDaysISO(cursor, offset);
 
   if (fromISO && cursor < fromISO) {
-    // In ganzen Wochen bis zur unteren Grenze springen
+    // In ganzen Rhythmus-Schritten bis zur unteren Grenze springen
     const [fy, fm, fd] = fromISO.split("-").map(Number);
     const [cy, cm, cd] = cursor.split("-").map(Number);
     const diffDays = Math.round(
       (Date.UTC(fy, fm - 1, fd) - Date.UTC(cy, cm - 1, cd)) / 86_400_000
     );
-    cursor = addDaysISO(cursor, Math.floor(diffDays / 7) * 7);
-    while (cursor < fromISO) cursor = addDaysISO(cursor, 7);
+    cursor = addDaysISO(cursor, Math.floor(diffDays / stepDays) * stepDays);
+    while (cursor < fromISO) cursor = addDaysISO(cursor, stepDays);
   }
 
   const hardEnd = def.endDate && def.endDate < untilISO ? def.endDate : untilISO;
@@ -77,7 +80,7 @@ export function expandWeekly(def: WeeklyDef, untilISO: string, fromISO?: string)
       start: berlinInstant(cursor, def.startTime),
       end: berlinInstant(cursor, def.endTime),
     });
-    cursor = addDaysISO(cursor, 7);
+    cursor = addDaysISO(cursor, stepDays);
   }
 
   return result;

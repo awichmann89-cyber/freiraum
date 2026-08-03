@@ -37,6 +37,7 @@ export function postenIntervals(p: AnfragePostenInput, horizon: string = horizon
       endTime: p.endTime,
       firstDate: p.firstDate,
       endDate: p.endDate ?? null,
+      intervalWeeks: p.intervalWeeks,
     },
     horizon
   );
@@ -46,7 +47,15 @@ export function postenIntervals(p: AnfragePostenInput, horizon: string = horizon
 export function postenIntervalsFromDb(
   p: Pick<
     AnfragePosten,
-    "art" | "startsAt" | "endsAt" | "weekday" | "startTime" | "endTime" | "firstDate" | "endDate"
+    | "art"
+    | "startsAt"
+    | "endsAt"
+    | "weekday"
+    | "startTime"
+    | "endTime"
+    | "firstDate"
+    | "endDate"
+    | "intervalWeeks"
   >,
   horizon: string = horizonISO()
 ): Interval[] {
@@ -61,6 +70,7 @@ export function postenIntervalsFromDb(
       endTime: p.endTime!,
       firstDate: dbDateToISO(p.firstDate!),
       endDate: p.endDate ? dbDateToISO(p.endDate) : null,
+      intervalWeeks: p.intervalWeeks ?? 1,
     },
     horizon
   );
@@ -80,6 +90,7 @@ export function postenBeschreibung(p: AnfragePostenInput): string {
     endTime: p.endTime,
     firstDate: isoToDeutsch(p.firstDate),
     endDate: p.endDate ? isoToDeutsch(p.endDate) : null,
+    intervalWeeks: p.intervalWeeks,
   });
 }
 
@@ -87,7 +98,15 @@ export function postenBeschreibung(p: AnfragePostenInput): string {
 export function postenBeschreibungFromDb(
   p: Pick<
     AnfragePosten,
-    "art" | "startsAt" | "endsAt" | "weekday" | "startTime" | "endTime" | "firstDate" | "endDate"
+    | "art"
+    | "startsAt"
+    | "endsAt"
+    | "weekday"
+    | "startTime"
+    | "endTime"
+    | "firstDate"
+    | "endDate"
+    | "intervalWeeks"
   >
 ): string {
   if (p.art === "EINZEL") {
@@ -100,6 +119,7 @@ export function postenBeschreibungFromDb(
     endTime: p.endTime!,
     firstDate: isoToDeutsch(dbDateToISO(p.firstDate!)),
     endDate: p.endDate ? isoToDeutsch(dbDateToISO(p.endDate)) : null,
+    intervalWeeks: p.intervalWeeks ?? 1,
   });
 }
 

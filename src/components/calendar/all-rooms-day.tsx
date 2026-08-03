@@ -29,6 +29,12 @@ export function AllRoomsDay({
   const [selected, setSelected] = useState<CalendarEventVM | null>(null);
   const [selection, setSelection] = useState<BookingSelection | null>(null);
 
+  const viewer = booking
+    ? booking.mode === "admin"
+      ? { isAdmin: true, gruppeId: null }
+      : { isAdmin: false, gruppeId: booking.gruppeId }
+    : null;
+
   const columns: TimeGridColumn[] = rooms.map((r) => ({
     key: r.id,
     label: r.name,
@@ -53,7 +59,7 @@ export function AllRoomsDay({
         }
         onEventClick={(ev) => setSelected(ev)}
       />
-      <BookingDetailsSheet event={selected} onClose={() => setSelected(null)} />
+      <BookingDetailsSheet event={selected} onClose={() => setSelected(null)} viewer={viewer} />
       {booking ? (
         <BookingDialog
           selection={selection}

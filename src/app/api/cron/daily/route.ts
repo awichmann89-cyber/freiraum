@@ -41,6 +41,7 @@ export async function GET(request: Request) {
         endTime: serie.endTime,
         firstDate: dbDateToISO(serie.firstDate),
         endDate: serie.endDate ? dbDateToISO(serie.endDate) : null,
+        intervalWeeks: serie.intervalWeeks,
       },
       horizon,
       fromISO

@@ -28,9 +28,10 @@ Prisma 6 (NICHT auf 7 upgraden ohne Migration der Config!), Neon Postgres, NextA
 ## Architektur-Regeln (bewusst so entschieden)
 
 1. **Zeiten:** Speicherung strikt UTC, halboffene Intervalle `[startsAt, endsAt)`. Serien
-   (`BuchungsSerie`) speichern Wandzeit Europe/Berlin (`weekday`, `startTime`, `endTime`).
-   Expansion NUR über `expandWeekly()` in `src/lib/occurrences.ts` (TZDate, DST-fest).
-   Nie `new Date(y,m,d,h)` auf dem Server.
+   (`BuchungsSerie`) speichern Wandzeit Europe/Berlin (`weekday`, `startTime`, `endTime`)
+   plus `intervalWeeks` (Rhythmus in Wochen, 1 = wöchentlich; Phase am ersten Termin
+   verankert). Expansion NUR über `expandWeekly()` in `src/lib/occurrences.ts` (TZDate,
+   DST-fest). Nie `new Date(y,m,d,h)` auf dem Server.
 2. **Belegung = eine Tabelle `Buchung`** (`art: GRUPPE | VERMIETUNG`). Serien werden 12 Monate
    im Voraus materialisiert (Cron `/api/cron/daily`), Buchungshorizont 12 Monate
    (`BUCHUNGS_HORIZONT_MONATE` in `src/lib/constants.ts`).

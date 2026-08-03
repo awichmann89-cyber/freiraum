@@ -93,6 +93,7 @@ export async function decidePosten(
               endTime: posten.endTime!,
               firstDate: posten.firstDate!,
               endDate: posten.endDate,
+              intervalWeeks: posten.intervalWeeks ?? 1,
               materializedUntil: new Date(`${horizon}T00:00:00.000Z`),
             },
           });

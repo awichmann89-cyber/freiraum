@@ -16,6 +16,10 @@ export type CalendarEventVM = {
   status: "confirmed" | "pending";
   isRecurring?: boolean;
   color?: string | null;
+  // Nur interne Ansicht (getWeekEvents), für Absagen im Details-Sheet:
+  buchungId?: string;
+  serieId?: string | null;
+  gruppeId?: string | null;
 };
 
 function dateFromISO(iso: string): Date {
@@ -68,6 +72,9 @@ export async function getWeekEvents(opts: {
         status: "confirmed",
         isRecurring: !!b.serieId,
         color: b.gruppe?.color ?? null,
+        buchungId: b.id,
+        serieId: b.serieId,
+        gruppeId: b.gruppeId,
       });
     }
   }
@@ -105,6 +112,7 @@ export async function getWeekEvents(opts: {
                 endTime: p.endTime!,
                 firstDate: dbDateToISO(p.firstDate!),
                 endDate: p.endDate ? dbDateToISO(p.endDate) : null,
+                intervalWeeks: p.intervalWeeks ?? 1,
               },
               sundayISO,
               mondayISO

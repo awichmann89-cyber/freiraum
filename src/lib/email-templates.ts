@@ -321,8 +321,11 @@ export function beschreibeWoechentlich(opts: {
   endTime: string;
   firstDate: string; // bereits formatiert
   endDate?: string | null;
+  intervalWeeks?: number | null;
 }): string {
   const tag = WEEKDAY_NAMES[opts.weekday] ?? "?";
+  const interval = opts.intervalWeeks ?? 1;
+  const rhythmus = interval > 1 ? `Alle ${interval} Wochen` : "Wöchentlich";
   const bis = opts.endDate ? ` bis ${opts.endDate}` : "";
-  return `Wöchentlich ${tag.toLowerCase()}s ${opts.startTime}–${opts.endTime} Uhr, ab ${opts.firstDate}${bis}`;
+  return `${rhythmus} ${tag.toLowerCase()}s ${opts.startTime}–${opts.endTime} Uhr, ab ${opts.firstDate}${bis}`;
 }

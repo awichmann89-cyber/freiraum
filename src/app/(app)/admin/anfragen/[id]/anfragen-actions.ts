@@ -164,7 +164,7 @@ async function finalizeAnfrageIfComplete(anfrageId: string) {
 
   const mail = anfrageErgebnisEmail({
     posten: zeilen,
-    link: `${getBaseUrl()}/meine-anfragen/${anfrageId}`,
+    link: `${getBaseUrl()}/buchen/anfragen/${anfrageId}`,
   });
   await sendEmail({ to: anfrage.createdBy.email, ...mail });
 }

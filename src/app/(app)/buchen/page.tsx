@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth-helpers";
 import { Card, CardContent } from "@/components/ui/card";
 import { BuchenWizard } from "./buchen-wizard";
+import { AnfragenListe } from "./anfragen-liste";
 
 export const metadata: Metadata = { title: "Buchen" };
 
@@ -43,17 +44,20 @@ export default async function BuchenPage({
   const start = /^\d{2}:\d{2}$/.test(sp.start ?? "") ? sp.start : undefined;
 
   return (
-    <div className="space-y-4">
-      <h1 className="text-xl font-semibold">Buchungsanfrage stellen</h1>
-      <BuchenWizard
-        raeume={raeume.map((r) => ({ id: r.id, name: r.name, etageName: r.etage.name }))}
-        prefill={{
-          raumId: sp.raumId,
-          date: /^\d{4}-\d{2}-\d{2}$/.test(sp.datum ?? "") ? sp.datum : undefined,
-          start,
-          end: start ? plusMinutes(start, 120) : undefined,
-        }}
-      />
+    <div className="space-y-8">
+      <section className="space-y-4">
+        <h1 className="text-xl font-semibold">Buchungsanfrage stellen</h1>
+        <BuchenWizard
+          raeume={raeume.map((r) => ({ id: r.id, name: r.name, etageName: r.etage.name }))}
+          prefill={{
+            raumId: sp.raumId,
+            date: /^\d{4}-\d{2}-\d{2}$/.test(sp.datum ?? "") ? sp.datum : undefined,
+            start,
+            end: start ? plusMinutes(start, 120) : undefined,
+          }}
+        />
+      </section>
+      <AnfragenListe gruppeId={user.gruppeId} />
     </div>
   );
 }

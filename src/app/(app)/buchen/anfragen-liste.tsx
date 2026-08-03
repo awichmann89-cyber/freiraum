@@ -1,10 +1,6 @@
-import type { Metadata } from "next";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
-import { requireUser } from "@/lib/auth-helpers";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import {
   Table,
   TableBody,
@@ -15,26 +11,9 @@ import {
 } from "@/components/ui/table";
 import { formatDate } from "@/lib/tz";
 
-export const metadata: Metadata = { title: "Meine Anfragen" };
-
-export default async function MeineAnfragenPage() {
-  const user = await requireUser();
-
-  if (!user.gruppeId) {
-    return (
-      <div className="space-y-4">
-        <h1 className="text-xl font-semibold">Anfragen</h1>
-        <Card>
-          <CardContent className="pt-6 text-sm text-muted-foreground">
-            Dein Zugang ist keiner Gruppe zugeordnet.
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
+export async function AnfragenListe({ gruppeId }: { gruppeId: string }) {
   const anfragen = await prisma.buchungsAnfrage.findMany({
-    where: { gruppeId: user.gruppeId },
+    where: { gruppeId },
     orderBy: { createdAt: "desc" },
     take: 50,
     include: {
@@ -44,14 +23,8 @@ export default async function MeineAnfragenPage() {
   });
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold">Anfragen deiner Gruppe</h1>
-        <Button asChild size="sm">
-          <Link href="/buchen">Neue Anfrage</Link>
-        </Button>
-      </div>
-
+    <section className="space-y-3">
+      <h2 className="text-lg font-semibold">Anfragen deiner Gruppe</h2>
       <div className="rounded-lg border">
         <Table>
           <TableHeader>
@@ -66,7 +39,7 @@ export default async function MeineAnfragenPage() {
             {anfragen.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={4} className="text-center text-muted-foreground">
-                  Noch keine Anfragen — starte mit „Neue Anfrage&ldquo;.
+                  Noch keine Anfragen — stelle oben deine erste Buchungsanfrage.
                 </TableCell>
               </TableRow>
             ) : (
@@ -77,7 +50,10 @@ export default async function MeineAnfragenPage() {
                 return (
                   <TableRow key={a.id}>
                     <TableCell>
-                      <Link href={`/meine-anfragen/${a.id}`} className="font-medium hover:underline">
+                      <Link
+                        href={`/buchen/anfragen/${a.id}`}
+                        className="font-medium hover:underline"
+                      >
                         {formatDate(a.createdAt)}
                       </Link>
                     </TableCell>
@@ -91,7 +67,9 @@ export default async function MeineAnfragenPage() {
                             {bestaetigt} bestätigt
                           </Badge>
                         ) : null}
-                        {abgelehnt > 0 ? <Badge variant="destructive">{abgelehnt} abgelehnt</Badge> : null}
+                        {abgelehnt > 0 ? (
+                          <Badge variant="destructive">{abgelehnt} abgelehnt</Badge>
+                        ) : null}
                       </div>
                     </TableCell>
                   </TableRow>
@@ -101,6 +79,6 @@ export default async function MeineAnfragenPage() {
           </TableBody>
         </Table>
       </div>
-    </div>
+    </section>
   );
 }

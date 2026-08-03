@@ -171,5 +171,5 @@ export async function submitAnfrage(input: unknown): Promise<{ error: string } |
     await sendEmail({ to: admins.map((a) => a.email), ...mail });
   }
 
-  redirect(`/meine-anfragen/${anfrage.id}?neu=1`);
+  redirect(`/buchen/anfragen/${anfrage.id}?neu=1`);
 }

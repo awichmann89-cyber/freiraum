@@ -24,7 +24,7 @@ function StatusBadge({ status }: { status: string }) {
   }
 }
 
-export default async function MeineAnfrageDetailPage({
+export default async function AnfrageDetailPage({
   params,
   searchParams,
 }: {
@@ -63,7 +63,7 @@ export default async function MeineAnfrageDetailPage({
 
       <div className="flex items-center gap-2">
         <Button variant="ghost" size="icon-sm" asChild>
-          <Link href="/meine-anfragen" aria-label="Zurück">
+          <Link href="/buchen" aria-label="Zurück">
             <ArrowLeft className="size-4" />
           </Link>
         </Button>

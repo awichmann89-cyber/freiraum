@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { CalendarDays, CirclePlus, ListChecks, Map, Settings, LogOut } from "lucide-react";
+import { CalendarDays, CirclePlus, Map, Settings, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { logoutAction } from "@/app/(app)/nav-actions";
@@ -18,7 +18,6 @@ const NAV_ITEMS: NavItem[] = [
   { href: "/kalender", label: "Kalender", icon: CalendarDays },
   { href: "/etagen", label: "Etagen", icon: Map },
   { href: "/buchen", label: "Buchen", icon: CirclePlus },
-  { href: "/meine-anfragen", label: "Anfragen", icon: ListChecks },
   { href: "/admin", label: "Admin", icon: Settings, adminOnly: true },
 ];
 

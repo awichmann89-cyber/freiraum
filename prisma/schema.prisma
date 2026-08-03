@@ -1,0 +1,340 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ---------- Enums ----------
+
+enum Role {
+  ADMIN
+  GRUPPE
+}
+
+enum BuchungsArt {
+  GRUPPE
+  VERMIETUNG
+}
+
+enum BuchungsStatus {
+  BESTAETIGT
+  STORNIERT
+}
+
+enum AnfrageArt {
+  EINZEL
+  WOECHENTLICH
+}
+
+enum PostenStatus {
+  ANGEFRAGT
+  BESTAETIGT
+  ABGELEHNT
+}
+
+enum SerienStatus {
+  AKTIV
+  BEENDET
+  STORNIERT
+}
+
+enum VermietungsStatus {
+  NEU
+  ABGELEHNT
+  VERTRAG_GESENDET
+  ABGELAUFEN
+  SIGNIERT
+  STORNIERT
+}
+
+enum TokenZweck {
+  EINLADUNG
+  PASSWORT_RESET
+  VERTRAG_SIGNATUR
+}
+
+enum FormArt {
+  RECHTECK
+  POLYGON
+}
+
+enum PreisTyp {
+  STUNDE
+  TAG
+}
+
+// ---------- Auth / Nutzer ----------
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  name         String
+  passwordHash String? // null bis Einladung angenommen -> Login unmöglich
+  role         Role     @default(GRUPPE)
+  isActive     Boolean  @default(true)
+  gruppeId     String?
+  gruppe       Gruppe?  @relation(fields: [gruppeId], references: [id], onDelete: SetNull)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  tokens             ActionToken[]
+  erstellteAnfragen  BuchungsAnfrage[] @relation("AnfrageErsteller")
+  entschiedenePosten AnfragePosten[]   @relation("PostenEntscheider")
+}
+
+model Gruppe {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  color     String   @default("#64748b")
+  notiz     String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  users     User[]
+  anfragen  BuchungsAnfrage[]
+  serien    BuchungsSerie[]
+  buchungen Buchung[]
+}
+
+// ---------- Haus ----------
+
+model Etage {
+  id                 String  @id @default(cuid())
+  name               String
+  level              Int     @unique // -1 UG, 0 EG, 1 OG ...
+  floorplanPdfUrl    String?
+  floorplanImageUrl  String?
+  floorplanImgWidth  Int?
+  floorplanImgHeight Int?
+
+  raeume Raum[]
+  formen RaumForm[]
+}
+
+model Raum {
+  id          String   @id @default(cuid())
+  name        String
+  etageId     String
+  etage       Etage    @relation(fields: [etageId], references: [id], onDelete: Restrict)
+  sizeSqm     Decimal? @db.Decimal(6, 1)
+  capacity    Int?
+  priceHourly Decimal? @db.Decimal(10, 2)
+  priceDaily  Decimal? @db.Decimal(10, 2)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  formen       RaumForm[]
+  buchungen    Buchung[]
+  serien       BuchungsSerie[]
+  posten       AnfragePosten[]
+  vermietungen Vermietung[]
+
+  @@unique([etageId, name])
+}
+
+model RaumForm {
+  id      String  @id @default(cuid())
+  etageId String
+  etage   Etage   @relation(fields: [etageId], references: [id], onDelete: Cascade)
+  raumId  String
+  raum    Raum    @relation(fields: [raumId], references: [id], onDelete: Cascade)
+  kind    FormArt @default(POLYGON)
+  points  Json // [{ "x": 0..1, "y": 0..1 }, ...] relativ zum floorplanImage
+
+  @@unique([etageId, raumId])
+}
+
+// ---------- Interne Buchungsanfragen ----------
+
+model BuchungsAnfrage {
+  id          String    @id @default(cuid())
+  gruppeId    String
+  gruppe      Gruppe    @relation(fields: [gruppeId], references: [id], onDelete: Restrict)
+  createdById String
+  createdBy   User      @relation("AnfrageErsteller", fields: [createdById], references: [id], onDelete: Restrict)
+  notiz       String?
+  createdAt   DateTime  @default(now())
+  completedAt DateTime? // gesetzt, wenn letzter Posten entschieden -> genau 1 Ergebnis-Mail
+
+  posten AnfragePosten[]
+
+  @@index([gruppeId, createdAt])
+}
+
+model AnfragePosten {
+  id        String          @id @default(cuid())
+  anfrageId String
+  anfrage   BuchungsAnfrage @relation(fields: [anfrageId], references: [id], onDelete: Cascade)
+  raumId    String
+  raum      Raum            @relation(fields: [raumId], references: [id], onDelete: Restrict)
+  titel     String
+  art       AnfrageArt
+
+  // EINZEL: UTC-Zeitstempel
+  startsAt DateTime?
+  endsAt   DateTime?
+
+  // WOECHENTLICH: Wandzeit Europe/Berlin (DST-fest)
+  weekday   Int? // ISO 1=Mo .. 7=So
+  startTime String? // "18:00"
+  endTime   String? // "20:00"
+  firstDate DateTime? @db.Date
+  endDate   DateTime? @db.Date // null = offen
+
+  status       PostenStatus @default(ANGEFRAGT)
+  decidedAt    DateTime?
+  decidedById  String?
+  decidedBy    User?        @relation("PostenEntscheider", fields: [decidedById], references: [id], onDelete: SetNull)
+  rejectReason String?
+
+  serieId   String?        @unique
+  serie     BuchungsSerie? @relation(fields: [serieId], references: [id], onDelete: SetNull)
+  buchungen Buchung[]
+
+  @@index([anfrageId])
+  @@index([raumId, status])
+}
+
+// ---------- Serien + Buchungen (Belegung) ----------
+
+model BuchungsSerie {
+  id                String       @id @default(cuid())
+  raumId            String
+  raum              Raum         @relation(fields: [raumId], references: [id], onDelete: Restrict)
+  gruppeId          String
+  gruppe            Gruppe       @relation(fields: [gruppeId], references: [id], onDelete: Restrict)
+  titel             String
+  weekday           Int // ISO 1..7
+  startTime         String // "HH:mm" Europe/Berlin
+  endTime           String
+  firstDate         DateTime     @db.Date
+  endDate           DateTime?    @db.Date
+  materializedUntil DateTime     @db.Date
+  status            SerienStatus @default(AKTIV)
+  createdAt         DateTime     @default(now())
+
+  posten    AnfragePosten?
+  buchungen Buchung[]
+
+  @@index([status, materializedUntil])
+}
+
+// Die eine Belegungstabelle: jede Zeile = ein konkreter Termin.
+model Buchung {
+  id       String         @id @default(cuid())
+  raumId   String
+  raum     Raum           @relation(fields: [raumId], references: [id], onDelete: Restrict)
+  art      BuchungsArt
+  status   BuchungsStatus @default(BESTAETIGT)
+  startsAt DateTime // UTC, halboffenes Intervall [startsAt, endsAt)
+  endsAt   DateTime
+  titel    String
+
+  gruppeId        String?
+  gruppe          Gruppe?        @relation(fields: [gruppeId], references: [id], onDelete: Restrict)
+  serieId         String?
+  serie           BuchungsSerie? @relation(fields: [serieId], references: [id], onDelete: Cascade)
+  anfragePostenId String?
+  anfragePosten   AnfragePosten? @relation(fields: [anfragePostenId], references: [id], onDelete: SetNull)
+  vermietungId    String?
+  vermietung      Vermietung?    @relation(fields: [vermietungId], references: [id], onDelete: Cascade)
+
+  cancelledAt  DateTime?
+  cancelReason String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@index([raumId, startsAt])
+  @@index([startsAt])
+  @@index([serieId])
+  @@index([gruppeId, startsAt])
+  @@index([vermietungId])
+}
+
+// ---------- Vermietung (externe Anfrage + Vertrag) ----------
+
+model Vermietung {
+  id     String            @id @default(cuid())
+  nummer String            @unique // "V-2026-001"
+  status VermietungsStatus @default(NEU)
+
+  // Öffentliche Anfrage
+  contactName    String
+  contactEmail   String
+  contactPhone   String?
+  organization   String?
+  purpose        String
+  message        String?
+  raumId         String?
+  raum           Raum?    @relation(fields: [raumId], references: [id], onDelete: Restrict)
+  requestedStart DateTime
+  requestedEnd   DateTime
+
+  // Admin-Bearbeitung / Vertrag
+  startsAt        DateTime?
+  endsAt          DateTime?
+  priceType       PreisTyp?
+  basePrice       Decimal?         @db.Decimal(10, 2)
+  discountPercent Decimal?         @db.Decimal(5, 2)
+  finalPrice      Decimal?         @db.Decimal(10, 2)
+  vorlageId       String?
+  vorlage         Vertragsvorlage? @relation(fields: [vorlageId], references: [id], onDelete: SetNull)
+  contractText    String?          @db.Text // gerenderter, eingefrorener Vertragstext
+  contractPdfUrl  String?
+  signatureUrl    String?
+  signedAt        DateTime?
+  signedName      String?
+  signerIp        String?
+  sentAt          DateTime?
+  declineReason   String?
+  cancelledAt     DateTime?
+  adminNote       String?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  buchungen Buchung[]
+  tokens    ActionToken[]
+
+  @@index([status, createdAt])
+}
+
+model Vertragsvorlage {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  body      String   @db.Text // Platzhalter: {{name}}, {{raum}}, {{datum}}, {{zeit}}, {{preis}}, ...
+  isDefault Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  vermietungen Vermietung[]
+}
+
+// ---------- Infrastruktur ----------
+
+model Setting {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt
+}
+
+model ActionToken {
+  id           String      @id @default(cuid())
+  tokenHash    String      @unique // sha256(rawToken)
+  purpose      TokenZweck
+  userId       String?
+  user         User?       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  vermietungId String?
+  vermietung   Vermietung? @relation(fields: [vermietungId], references: [id], onDelete: Cascade)
+  expiresAt    DateTime
+  usedAt       DateTime?
+  createdAt    DateTime    @default(now())
+
+  @@index([userId])
+  @@index([vermietungId])
+}

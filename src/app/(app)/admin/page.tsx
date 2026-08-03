@@ -3,7 +3,7 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
-export const metadata: Metadata = { title: "Admin" };
+export const metadata: Metadata = { title: "Admin-Bereich" };
 
 export default async function AdminDashboardPage() {
   const [offenePosten, offeneAnfragen, neueVermietungen, gruppen, raeume] = await Promise.all([

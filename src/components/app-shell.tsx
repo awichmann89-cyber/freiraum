@@ -18,7 +18,7 @@ const NAV_ITEMS: NavItem[] = [
   { href: "/kalender", label: "Kalender", icon: CalendarDays },
   { href: "/etagen", label: "Etagen", icon: Map },
   { href: "/buchen", label: "Buchen", icon: CirclePlus },
-  { href: "/admin", label: "Admin", icon: Settings, adminOnly: true },
+  { href: "/admin", label: "Admin-Bereich", icon: Settings, adminOnly: true },
 ];
 
 export function AppShell({

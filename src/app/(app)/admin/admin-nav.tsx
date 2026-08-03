@@ -6,10 +6,10 @@ import { cn } from "@/lib/utils";
 
 const ITEMS = [
   { href: "/admin", label: "Übersicht", exact: true },
-  { href: "/admin/anfragen", label: "Anfragen" },
-  { href: "/admin/vermietungen", label: "Vermietungen" },
+  { href: "/admin/anfragen", label: "Interne Anfragen" },
+  { href: "/admin/vermietungen", label: "Vermietungs Anfragen" },
   { href: "/admin/raeume", label: "Räume" },
-  { href: "/admin/etagen", label: "Etagen" },
+  { href: "/admin/etagen", label: "Floorplan" },
   { href: "/admin/gruppen", label: "Gruppen" },
   { href: "/admin/einstellungen", label: "Einstellungen" },
 ];

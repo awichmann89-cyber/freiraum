@@ -17,6 +17,7 @@ import { ConfirmButton } from "@/components/confirm-button";
 import { GruppeDialog } from "../gruppe-dialog";
 import { deleteUser, resendInvite, setGruppeActive, setUserActive } from "../gruppen-actions";
 import { InviteForm } from "./invite-form";
+import { AssignForm } from "./assign-form";
 
 export const metadata: Metadata = { title: "Gruppe" };
 
@@ -27,6 +28,17 @@ export default async function GruppeDetailPage({ params }: { params: Promise<{ i
     include: { users: { orderBy: { name: "asc" } } },
   });
   if (!gruppe) notFound();
+
+  const kandidaten = await prisma.user.findMany({
+    where: { OR: [{ gruppeId: null }, { gruppeId: { not: id } }] },
+    orderBy: { name: "asc" },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      gruppe: { select: { name: true } },
+    },
+  });
 
   return (
     <div className="space-y-4">
@@ -68,6 +80,23 @@ export default async function GruppeDetailPage({ params }: { params: Promise<{ i
         </CardHeader>
         <CardContent>
           <InviteForm gruppeId={gruppe.id} />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Bestehenden Zugang zuordnen</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <AssignForm
+            gruppeId={gruppe.id}
+            kandidaten={kandidaten.map((k) => ({
+              id: k.id,
+              name: k.name,
+              email: k.email,
+              gruppeName: k.gruppe?.name ?? null,
+            }))}
+          />
         </CardContent>
       </Card>
 

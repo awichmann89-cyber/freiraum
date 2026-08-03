@@ -81,6 +81,30 @@ export async function inviteUser(
   return { ok: true };
 }
 
+export async function assignUserToGruppe(
+  gruppeId: string,
+  _prev: ActionResult,
+  formData: FormData
+): Promise<ActionResult> {
+  await requireAdmin();
+  const userId = String(formData.get("userId") ?? "");
+  if (!userId) return { error: "Zugang wählen." };
+
+  const gruppe = await prisma.gruppe.findUnique({ where: { id: gruppeId } });
+  if (!gruppe) return { error: "Gruppe nicht gefunden." };
+
+  const user = await prisma.user.findUnique({ where: { id: userId } });
+  if (!user) return { error: "Zugang nicht gefunden." };
+  if (user.gruppeId === gruppeId) return { error: "Der Zugang gehört bereits zu dieser Gruppe." };
+
+  await prisma.user.update({ where: { id: userId }, data: { gruppeId } });
+
+  revalidatePath(`/admin/gruppen/${gruppeId}`);
+  if (user.gruppeId) revalidatePath(`/admin/gruppen/${user.gruppeId}`);
+  revalidatePath("/admin/gruppen");
+  return { ok: true };
+}
+
 export async function resendInvite(userId: string): Promise<ActionResult> {
   await requireAdmin();
   const user = await prisma.user.findUnique({ where: { id: userId } });

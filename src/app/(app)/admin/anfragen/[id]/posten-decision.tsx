@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { ConfirmDialog } from "@/components/confirm-dialog";
 import { decidePosten } from "./anfragen-actions";
 
 export function PostenDecision({ postenId }: { postenId: string }) {
@@ -20,21 +21,16 @@ export function PostenDecision({ postenId }: { postenId: string }) {
   const [isPending, startTransition] = useTransition();
   const [rejectOpen, setRejectOpen] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
+  const [forceMessage, setForceMessage] = useState<string | null>(null);
 
   const confirm = (force: boolean) => {
     startTransition(async () => {
       const result = await decidePosten(postenId, { decision: "BESTAETIGEN", force });
       if ("needsForce" in result) {
-        if (window.confirm(`${result.message}\n\nTrotzdem bestätigen?`)) {
-          const forced = await decidePosten(postenId, { decision: "BESTAETIGEN", force: true });
-          if ("error" in forced) toast.error(forced.error);
-          else if ("ok" in forced) {
-            toast.success("Termin bestätigt");
-            router.refresh();
-          }
-        }
+        setForceMessage(result.message);
         return;
       }
+      setForceMessage(null);
       if ("error" in result) toast.error(result.error);
       else {
         toast.success("Termin bestätigt");
@@ -66,6 +62,18 @@ export function PostenDecision({ postenId }: { postenId: string }) {
       <Button size="sm" variant="outline" onClick={() => setRejectOpen(true)} disabled={isPending}>
         <X className="size-4" /> Ablehnen
       </Button>
+
+      <ConfirmDialog
+        open={!!forceMessage}
+        onOpenChange={(o) => {
+          if (!o) setForceMessage(null);
+        }}
+        title="Konflikt mit bestehenden Buchungen"
+        description={`${forceMessage ?? ""}\n\nTrotzdem bestätigen?`}
+        confirmLabel="Trotzdem bestätigen"
+        isPending={isPending}
+        onConfirm={() => confirm(true)}
+      />
 
       <Dialog open={rejectOpen} onOpenChange={setRejectOpen}>
         <DialogContent className="sm:max-w-sm">

@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { ConfirmDialog } from "@/components/confirm-dialog";
 import { declineVermietung, stornoVermietung } from "./vermietung-actions";
 
 export function DeclineButton({ vermietungId }: { vermietungId: string }) {
@@ -74,18 +75,13 @@ export function DeclineButton({ vermietungId }: { vermietungId: string }) {
 
 export function StornoButton({ vermietungId }: { vermietungId: string }) {
   const router = useRouter();
+  const [open, setOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
 
   const submit = () => {
-    if (
-      !window.confirm(
-        "Vermietung wirklich stornieren? Die geblockten Termine werden freigegeben und die Mieterin / der Mieter wird per Mail informiert."
-      )
-    ) {
-      return;
-    }
     startTransition(async () => {
       const result = await stornoVermietung(vermietungId);
+      setOpen(false);
       if (result && "error" in result) {
         toast.error(result.error);
         return;
@@ -96,8 +92,20 @@ export function StornoButton({ vermietungId }: { vermietungId: string }) {
   };
 
   return (
-    <Button variant="outline" size="sm" onClick={submit} disabled={isPending}>
-      <Ban className="size-4" /> {isPending ? "Stornieren…" : "Stornieren"}
-    </Button>
+    <>
+      <Button variant="outline" size="sm" onClick={() => setOpen(true)} disabled={isPending}>
+        <Ban className="size-4" /> {isPending ? "Stornieren…" : "Stornieren"}
+      </Button>
+      <ConfirmDialog
+        open={open}
+        onOpenChange={setOpen}
+        title="Vermietung stornieren?"
+        description="Die geblockten Termine werden freigegeben und die Mieterin / der Mieter wird per Mail informiert."
+        confirmLabel="Stornieren"
+        destructive
+        isPending={isPending}
+        onConfirm={submit}
+      />
+    </>
   );
 }

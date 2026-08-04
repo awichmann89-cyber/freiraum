@@ -25,6 +25,7 @@ import { minToHHMM } from "@/lib/calendar-time";
 import { formatDate } from "@/lib/tz";
 import { useIsDesktop } from "@/hooks/use-media-query";
 import { cancelBuchung } from "@/app/(app)/kalender/kalender-actions";
+import { ConfirmDialog } from "@/components/confirm-dialog";
 import { EditBuchungDialog, type EditTarget } from "./edit-buchung-dialog";
 
 export type CalendarViewer = { isAdmin: boolean; gruppeId: string | null };
@@ -46,6 +47,10 @@ export function BookingDetailsSheet({
   const isDesktop = useIsDesktop();
   const [isPending, startTransition] = useTransition();
   const [editTarget, setEditTarget] = useState<EditTarget | null>(null);
+  const [confirmTarget, setConfirmTarget] = useState<{
+    buchungId: string;
+    scope: "einzel" | "serie";
+  } | null>(null);
 
   const canModify = !!(
     viewer &&
@@ -64,18 +69,20 @@ export function BookingDetailsSheet({
 
   const doCancel = (scope: "einzel" | "serie") => {
     if (!event?.buchungId) return;
-    const frage =
-      scope === "serie"
-        ? "Wirklich die ganze Serie absagen? Alle zukünftigen Termine der Serie werden entfernt."
-        : "Diesen Termin wirklich absagen?";
-    if (!window.confirm(frage)) return;
+    setConfirmTarget({ buchungId: event.buchungId, scope });
+  };
+
+  const executeCancel = () => {
+    if (!confirmTarget) return;
     startTransition(async () => {
-      const res = await cancelBuchung(event.buchungId!, scope);
+      const res = await cancelBuchung(confirmTarget.buchungId, confirmTarget.scope);
       if (res && "error" in res) {
         toast.error(res.error);
+        setConfirmTarget(null);
         return;
       }
-      toast.success(scope === "serie" ? "Serie abgesagt" : "Termin abgesagt");
+      toast.success(confirmTarget.scope === "serie" ? "Serie abgesagt" : "Termin abgesagt");
+      setConfirmTarget(null);
       onClose();
       router.refresh();
     });
@@ -193,6 +200,22 @@ export function BookingDetailsSheet({
         onClose={() => setEditTarget(null)}
         raeume={raeume}
         isAdmin={!!viewer?.isAdmin}
+      />
+      <ConfirmDialog
+        open={!!confirmTarget}
+        onOpenChange={(o) => {
+          if (!o) setConfirmTarget(null);
+        }}
+        title={confirmTarget?.scope === "serie" ? "Ganze Serie absagen?" : "Termin absagen?"}
+        description={
+          confirmTarget?.scope === "serie"
+            ? "Alle zukünftigen Termine der Serie werden entfernt. Vergangene Termine bleiben erhalten."
+            : "Der Termin wird abgesagt und aus dem Kalender entfernt."
+        }
+        confirmLabel="Absagen"
+        destructive
+        isPending={isPending}
+        onConfirm={executeCancel}
       />
     </>
   );

@@ -155,6 +155,43 @@ export const adminBuchungSchema = z.discriminatedUnion("art", [
 
 export type AdminBuchungInput = z.input<typeof adminBuchungSchema>;
 
+/** Bearbeiten einer bestehenden Einzel-Buchung (bzw. eines einzelnen Serientermins). */
+export const buchungEditSchema = z
+  .object({
+    titel: z.string().trim().min(1, "Titel angeben").max(120),
+    raumId: z.string().min(1, "Raum wählen"),
+    startDate: dateString,
+    endDate: dateString,
+    startTime: timeString,
+    endTime: timeString,
+    force: z.boolean().optional().default(false),
+  })
+  .refine((d) => d.endDate >= d.startDate, {
+    message: "Enddatum muss am oder nach dem Startdatum liegen",
+    path: ["endDate"],
+  })
+  .refine(
+    (d) => d.endDate > d.startDate || timeToMinutes(d.endTime) > timeToMinutes(d.startTime),
+    { message: "Ende muss nach dem Beginn liegen", path: ["endTime"] }
+  );
+
+/** Bearbeiten einer ganzen Serie: zukünftige Termine werden neu materialisiert. */
+export const serieEditSchema = z
+  .object({
+    titel: z.string().trim().min(1, "Titel angeben").max(120),
+    raumId: z.string().min(1, "Raum wählen"),
+    weekday: z.coerce.number().int().min(1).max(7),
+    startTime: timeString,
+    endTime: timeString,
+    intervalWeeks: z.coerce.number().int().min(1, "Rhythmus wählen").max(12).default(1),
+    endDate: dateString.optional().or(z.literal("").transform(() => undefined)),
+    force: z.boolean().optional().default(false),
+  })
+  .refine((d) => timeToMinutes(d.endTime) > timeToMinutes(d.startTime), {
+    message: "Ende muss nach dem Beginn liegen",
+    path: ["endTime"],
+  });
+
 export type EinzelPostenInput = z.infer<typeof einzelPostenSchema>;
 export type WochenPostenInput = z.infer<typeof wochenPostenSchema>;
 export type AnfragePostenInput = z.infer<typeof anfragePostenSchema>;

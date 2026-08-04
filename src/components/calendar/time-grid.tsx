@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { Building2, Repeat } from "lucide-react";
+import { Building2, CalendarDays, Repeat } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { CalendarEventVM } from "@/lib/calendar-data";
 import { layoutOverlaps } from "@/lib/calendar-layout";
@@ -111,21 +111,35 @@ export function TimeGrid({
             return (
               <div
                 key={col.key}
-                className="flex-1 border-l px-1 py-1.5 text-center"
+                className="flex-1 border-l px-1 py-1 text-center"
                 style={{ minWidth: minColWidth }}
               >
-                <div className={cn("truncate text-xs font-medium", isToday && "text-primary")}>
-                  {col.href ? (
-                    <Link href={col.href} className="hover:underline">
+                {col.href ? (
+                  <Link
+                    href={col.href}
+                    title={`Wochenkalender „${col.label}" öffnen`}
+                    className="block rounded-md border bg-background px-1 py-1 transition-colors hover:border-primary/60 hover:bg-accent"
+                  >
+                    <div className={cn("truncate text-xs font-medium", isToday && "text-primary")}>
                       {col.label}
-                    </Link>
-                  ) : (
-                    col.label
-                  )}
-                </div>
-                {col.sublabel ? (
-                  <div className="truncate text-[10px] text-muted-foreground">{col.sublabel}</div>
-                ) : null}
+                    </div>
+                    {col.sublabel ? (
+                      <div className="truncate text-[10px] text-muted-foreground">{col.sublabel}</div>
+                    ) : null}
+                    <div className="mt-0.5 flex items-center justify-center gap-1 text-[10px] font-medium text-primary">
+                      <CalendarDays className="size-3" /> Wochenansicht
+                    </div>
+                  </Link>
+                ) : (
+                  <div className="py-0.5">
+                    <div className={cn("truncate text-xs font-medium", isToday && "text-primary")}>
+                      {col.label}
+                    </div>
+                    {col.sublabel ? (
+                      <div className="truncate text-[10px] text-muted-foreground">{col.sublabel}</div>
+                    ) : null}
+                  </div>
+                )}
               </div>
             );
           })}

@@ -96,7 +96,12 @@ export function RoomCalendar({
         onEventClick={(ev) => setSelected(ev)}
       />
 
-      <BookingDetailsSheet event={selected} onClose={() => setSelected(null)} viewer={viewer} />
+      <BookingDetailsSheet
+        event={selected}
+        onClose={() => setSelected(null)}
+        viewer={viewer}
+        raeume={[{ id: raumId, name: raumName ?? "Gewählter Raum" }]}
+      />
       {booking ? (
         <BookingDialog
           selection={selection}

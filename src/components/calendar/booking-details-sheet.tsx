@@ -1,8 +1,8 @@
 "use client";
 
-import { useTransition } from "react";
+import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Building2, Repeat, Trash2 } from "lucide-react";
+import { Building2, Pencil, Repeat, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import {
   Dialog,
@@ -25,6 +25,7 @@ import { minToHHMM } from "@/lib/calendar-time";
 import { formatDate } from "@/lib/tz";
 import { useIsDesktop } from "@/hooks/use-media-query";
 import { cancelBuchung } from "@/app/(app)/kalender/kalender-actions";
+import { EditBuchungDialog, type EditTarget } from "./edit-buchung-dialog";
 
 export type CalendarViewer = { isAdmin: boolean; gruppeId: string | null };
 
@@ -32,17 +33,21 @@ export function BookingDetailsSheet({
   event,
   onClose,
   viewer,
+  raeume = [],
 }: {
   event: CalendarEventVM | null;
   onClose: () => void;
-  /** Wer schaut? Steuert, ob Termine abgesagt werden dürfen (eigene Gruppe bzw. Admin: alle). */
+  /** Wer schaut? Steuert, ob Termine bearbeitet/abgesagt werden dürfen (eigene Gruppe bzw. Admin: alle). */
   viewer?: CalendarViewer | null;
+  /** Raumliste für den Bearbeiten-Dialog. */
+  raeume?: { id: string; name: string }[];
 }) {
   const router = useRouter();
   const isDesktop = useIsDesktop();
   const [isPending, startTransition] = useTransition();
+  const [editTarget, setEditTarget] = useState<EditTarget | null>(null);
 
-  const canCancel = !!(
+  const canModify = !!(
     viewer &&
     event &&
     event.kind === "internal" &&
@@ -50,6 +55,12 @@ export function BookingDetailsSheet({
     event.buchungId &&
     (viewer.isAdmin || (viewer.gruppeId && event.gruppeId === viewer.gruppeId))
   );
+
+  const openEdit = (scope: "einzel" | "serie") => {
+    if (!event) return;
+    setEditTarget({ event, scope });
+    onClose(); // Details schließen, Edit-Dialog übernimmt (eigener Event-Snapshot)
+  };
 
   const doCancel = (scope: "einzel" | "serie") => {
     if (!event?.buchungId) return;
@@ -100,28 +111,35 @@ export function BookingDetailsSheet({
         {event.isRecurring ? <Badge variant="outline">Serientermin</Badge> : null}
       </div>
 
-      {canCancel ? (
-        <div className="flex flex-wrap gap-2 pt-3">
-          {event.serieId ? (
-            <>
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={isPending}
-                onClick={() => doCancel("einzel")}
-              >
-                <Trash2 className="size-4" /> Nur diesen Termin absagen
+      {canModify ? (
+        event.serieId ? (
+          <div className="space-y-2 pt-3">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="w-24 text-xs text-muted-foreground">Dieser Termin:</span>
+              <Button variant="outline" size="sm" disabled={isPending} onClick={() => openEdit("einzel")}>
+                <Pencil className="size-4" /> Bearbeiten
               </Button>
-              <Button
-                variant="destructive"
-                size="sm"
-                disabled={isPending}
-                onClick={() => doCancel("serie")}
-              >
-                Ganze Serie absagen
+              <Button variant="outline" size="sm" disabled={isPending} onClick={() => doCancel("einzel")}>
+                <Trash2 className="size-4" /> Absagen
               </Button>
-            </>
-          ) : (
+            </div>
+            {event.serie ? (
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="w-24 text-xs text-muted-foreground">Ganze Serie:</span>
+                <Button variant="outline" size="sm" disabled={isPending} onClick={() => openEdit("serie")}>
+                  <Pencil className="size-4" /> Bearbeiten
+                </Button>
+                <Button variant="destructive" size="sm" disabled={isPending} onClick={() => doCancel("serie")}>
+                  <Trash2 className="size-4" /> Absagen
+                </Button>
+              </div>
+            ) : null}
+          </div>
+        ) : (
+          <div className="flex flex-wrap gap-2 pt-3">
+            <Button variant="outline" size="sm" disabled={isPending} onClick={() => openEdit("einzel")}>
+              <Pencil className="size-4" /> Bearbeiten
+            </Button>
             <Button
               variant="destructive"
               size="sm"
@@ -130,32 +148,28 @@ export function BookingDetailsSheet({
             >
               <Trash2 className="size-4" /> Termin absagen
             </Button>
-          )}
-        </div>
+          </div>
+        )
       ) : null}
     </div>
   ) : null;
 
   // Desktop: zentrierter Dialog — mobil: Bottom-Drawer mit Swipe.
-  if (isDesktop) {
-    return (
-      <Dialog open={!!event} onOpenChange={(open) => !open && onClose()}>
-        <DialogContent className="sm:max-w-md">
-          {event ? (
-            <>
-              <DialogHeader>
-                <DialogTitle className="flex items-center gap-2">{titelZeile}</DialogTitle>
-                <DialogDescription>{event.subtitle}</DialogDescription>
-              </DialogHeader>
-              {details}
-            </>
-          ) : null}
-        </DialogContent>
-      </Dialog>
-    );
-  }
-
-  return (
+  const detailsUI = isDesktop ? (
+    <Dialog open={!!event} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="sm:max-w-md">
+        {event ? (
+          <>
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">{titelZeile}</DialogTitle>
+              <DialogDescription>{event.subtitle}</DialogDescription>
+            </DialogHeader>
+            {details}
+          </>
+        ) : null}
+      </DialogContent>
+    </Dialog>
+  ) : (
     <Drawer open={!!event} onOpenChange={(open) => !open && onClose()}>
       <DrawerContent>
         {event ? (
@@ -169,5 +183,17 @@ export function BookingDetailsSheet({
         ) : null}
       </DrawerContent>
     </Drawer>
+  );
+
+  return (
+    <>
+      {detailsUI}
+      <EditBuchungDialog
+        target={editTarget}
+        onClose={() => setEditTarget(null)}
+        raeume={raeume}
+        isAdmin={!!viewer?.isAdmin}
+      />
+    </>
   );
 }

@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { prisma } from "@/lib/prisma";
+import { Button } from "@/components/ui/button";
 import { requireUser } from "@/lib/auth-helpers";
 import { getWeekEvents } from "@/lib/calendar-data";
 import { startOfWeekISO } from "@/lib/calendar-time";
@@ -43,6 +45,19 @@ export default async function KalenderPage({
           todayHref={`/kalender?datum=${heute}`}
         />
       </div>
+
+      {raeume.length > 0 ? (
+        <div className="flex flex-wrap items-center gap-1.5">
+          <span className="mr-1 text-sm text-muted-foreground">
+            Wochenkalender einzelner Räume:
+          </span>
+          {raeume.map((r) => (
+            <Button key={r.id} variant="outline" size="sm" asChild>
+              <Link href={`/kalender/raum/${r.id}?datum=${datum}`}>{r.name}</Link>
+            </Button>
+          ))}
+        </div>
+      ) : null}
 
       {raeume.length === 0 ? (
         <p className="text-sm text-muted-foreground">Noch keine Räume angelegt.</p>

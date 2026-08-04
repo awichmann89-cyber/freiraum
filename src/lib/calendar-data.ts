@@ -16,10 +16,20 @@ export type CalendarEventVM = {
   status: "confirmed" | "pending";
   isRecurring?: boolean;
   color?: string | null;
-  // Nur interne Ansicht (getWeekEvents), für Absagen im Details-Sheet:
+  // Nur interne Ansicht (getWeekEvents), für Absagen/Bearbeiten im Details-Sheet.
+  // startsAtISO/endsAtISO sind die ECHTEN Buchungsgrenzen (Events werden pro Tag segmentiert).
   buchungId?: string;
   serieId?: string | null;
   gruppeId?: string | null;
+  startsAtISO?: string;
+  endsAtISO?: string;
+  serie?: {
+    weekday: number;
+    startTime: string;
+    endTime: string;
+    intervalWeeks: number;
+    endDateISO: string | null;
+  } | null;
 };
 
 function dateFromISO(iso: string): Date {
@@ -52,6 +62,15 @@ export async function getWeekEvents(opts: {
     include: {
       gruppe: { select: { name: true, color: true } },
       raum: { select: { name: true } },
+      serie: {
+        select: {
+          weekday: true,
+          startTime: true,
+          endTime: true,
+          intervalWeeks: true,
+          endDate: true,
+        },
+      },
     },
     orderBy: { startsAt: "asc" },
   });
@@ -75,6 +94,17 @@ export async function getWeekEvents(opts: {
         buchungId: b.id,
         serieId: b.serieId,
         gruppeId: b.gruppeId,
+        startsAtISO: b.startsAt.toISOString(),
+        endsAtISO: b.endsAt.toISOString(),
+        serie: b.serie
+          ? {
+              weekday: b.serie.weekday,
+              startTime: b.serie.startTime,
+              endTime: b.serie.endTime,
+              intervalWeeks: b.serie.intervalWeeks,
+              endDateISO: b.serie.endDate ? dbDateToISO(b.serie.endDate) : null,
+            }
+          : null,
       });
     }
   }

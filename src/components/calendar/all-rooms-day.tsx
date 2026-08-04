@@ -59,7 +59,12 @@ export function AllRoomsDay({
         }
         onEventClick={(ev) => setSelected(ev)}
       />
-      <BookingDetailsSheet event={selected} onClose={() => setSelected(null)} viewer={viewer} />
+      <BookingDetailsSheet
+        event={selected}
+        onClose={() => setSelected(null)}
+        viewer={viewer}
+        raeume={rooms.map((r) => ({ id: r.id, name: r.name }))}
+      />
       {booking ? (
         <BookingDialog
           selection={selection}
